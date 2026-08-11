@@ -90,13 +90,16 @@ class _SitePhotosScreenState extends State<SitePhotosScreen> {
                       'Progress photos by project',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: AppColors.navy,
+                            color: AppColors.text(context),
                           ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Open a project to add site photos from camera or gallery. Gallery lets you select multiple photos at once.',
-                      style: TextStyle(color: AppColors.muted, height: 1.35),
+                      style: TextStyle(
+                        color: AppColors.textMuted(context),
+                        height: 1.35,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     ...projects.map((project) {
@@ -145,17 +148,17 @@ class _SitePhotosScreenState extends State<SitePhotosScreen> {
                                               count == 0
                                                   ? 'No progress photos yet'
                                                   : '$count photo${count == 1 ? '' : 's'}',
-                                              style: const TextStyle(
-                                                color: AppColors.muted,
+                                              style: TextStyle(
+                                                color: AppColors.textMuted(context),
                                                 fontSize: 13,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                      const Icon(
+                                      Icon(
                                         Icons.chevron_right,
-                                        color: AppColors.muted,
+                                        color: AppColors.textMuted(context),
                                       ),
                                     ],
                                   ),

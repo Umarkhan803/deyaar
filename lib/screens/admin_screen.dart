@@ -21,13 +21,13 @@ class AdminScreen extends StatelessWidget {
             'Admin',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: AppColors.navy,
+                  color: AppColors.text(context),
                 ),
           ),
           const SizedBox(height: 4),
           Text(
             'Manage quotations, milestones and cost templates',
-            style: TextStyle(color: Theme.of(context).hintColor),
+            style: TextStyle(color: AppColors.textMuted(context)),
           ),
           const SizedBox(height: 16),
           ModuleTile(

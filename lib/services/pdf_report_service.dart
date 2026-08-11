@@ -158,16 +158,33 @@ class PdfReportService {
         .map((item) => (label: item.label, value: item.value.trim()))
         .toList();
 
+    // Professional serif for quotation / cost documents (falls back offline).
+    late final pw.Font baseFont;
+    late final pw.Font boldFont;
+    late final pw.Font italicFont;
+    late final pw.Font boldItalicFont;
+    try {
+      baseFont = await PdfGoogleFonts.sourceSerif4Regular();
+      boldFont = await PdfGoogleFonts.sourceSerif4Bold();
+      italicFont = await PdfGoogleFonts.sourceSerif4Italic();
+      boldItalicFont = await PdfGoogleFonts.sourceSerif4BoldItalic();
+    } catch (_) {
+      baseFont = pw.Font.times();
+      boldFont = pw.Font.timesBold();
+      italicFont = pw.Font.timesItalic();
+      boldItalicFont = pw.Font.timesBoldItalic();
+    }
+
     doc.addPage(
       pw.MultiPage(
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.fromLTRB(40, 48, 40, 44),
           theme: pw.ThemeData.withFont(
-            base: pw.Font.times(),
-            bold: pw.Font.timesBold(),
-            italic: pw.Font.timesItalic(),
-            boldItalic: pw.Font.timesBoldItalic(),
+            base: baseFont,
+            bold: boldFont,
+            italic: italicFont,
+            boldItalic: boldItalicFont,
           ),
           buildBackground: (context) {
             final wm = watermark;
@@ -215,14 +232,38 @@ class PdfReportService {
               style: const pw.TextStyle(color: _muted, fontSize: 11),
             )
           else
-            ...quotations.map(
-              (q) => pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 10),
-                child: pw.Text(
-                  q.title,
-                  style: const pw.TextStyle(fontSize: 12, lineSpacing: 1.3),
-                ),
-              ),
+            ...quotations.asMap().entries.map(
+              (entry) {
+                final n = entry.key + 1;
+                final q = entry.value;
+                return pw.Padding(
+                  padding: const pw.EdgeInsets.only(bottom: 10),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.SizedBox(
+                        width: 28,
+                        child: pw.Text(
+                          '$n.',
+                          style: pw.TextStyle(
+                            fontSize: 12,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      pw.Expanded(
+                        child: pw.Text(
+                          q.title,
+                          style: const pw.TextStyle(
+                            fontSize: 12,
+                            lineSpacing: 1.35,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           if (resolvedCost.isNotEmpty) ...[
             pw.SizedBox(height: 22),

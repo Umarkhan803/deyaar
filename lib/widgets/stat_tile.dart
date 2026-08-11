@@ -20,13 +20,17 @@ class StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = accent ?? AppColors.navy;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = accent ?? AppColors.primaryBlue;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: background ?? Colors.white,
+        color: background ??
+            (isDark ? AppColors.darkCard : Colors.white),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,7 +39,7 @@ class StatTile extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: color.withValues(alpha: isDark ? 0.22 : 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -47,14 +51,14 @@ class StatTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: AppColors.navyDeep,
+                  color: AppColors.text(context),
                 ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
+                  color: AppColors.textMuted(context),
                   fontWeight: FontWeight.w500,
                 ),
           ),

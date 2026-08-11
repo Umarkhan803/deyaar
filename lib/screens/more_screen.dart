@@ -27,7 +27,7 @@ class MoreScreen extends StatelessWidget {
       ),
       _MoreItem(
         'Labour',
-        'Workers, attendance and payroll',
+        'Workers and payroll',
         Icons.engineering_outlined,
         const LabourScreen(),
         AppColors.accentBlue,
@@ -69,7 +69,7 @@ class MoreScreen extends StatelessWidget {
       ),
       _MoreItem(
         'Labour Overview',
-        'Workers, attendance, payroll snapshot',
+        'Workers, attendance and payroll snapshot',
         Icons.groups_outlined,
         const LabourOverviewScreen(),
         AppColors.primaryBlue,
@@ -95,7 +95,7 @@ class MoreScreen extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           'Admin, labour, materials, reports and settings',
-          style: TextStyle(color: Theme.of(context).hintColor),
+          style: TextStyle(color: AppColors.textMuted(context)),
         ),
         const SizedBox(height: 20),
         ...items.map(

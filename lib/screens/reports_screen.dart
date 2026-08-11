@@ -156,7 +156,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       case ReportKind.labourCost:
         return (
           'Labour Cost',
-          'Wages paid, attendance and cost per project',
+          'Wages paid and cost per project',
           Icons.groups_outlined,
         );
     }

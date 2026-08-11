@@ -252,7 +252,7 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Choose items to include in the PDF.',
-                  style: TextStyle(color: Theme.of(context).hintColor),
+                  style: TextStyle(color: AppColors.textMuted(context)),
                 ),
                 const SizedBox(height: 12),
                 if (items.isEmpty)
@@ -288,7 +288,7 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
                                 : Icons.radio_button_unchecked,
                             color: checked
                                 ? AppColors.primaryBlue
-                                : AppColors.muted,
+                                : AppColors.textMuted(context),
                           ),
                         );
                       }).toList(),
@@ -305,7 +305,7 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Preview from Admin → Cost of Construction (merged into PDF).',
-                    style: TextStyle(color: Theme.of(context).hintColor),
+                    style: TextStyle(color: AppColors.textMuted(context)),
                   ),
                   const SizedBox(height: 8),
                   Card(
@@ -353,7 +353,7 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Optional text included at the end of the PDF.',
-                  style: TextStyle(color: Theme.of(context).hintColor),
+                  style: TextStyle(color: AppColors.textMuted(context)),
                 ),
                 const SizedBox(height: 8),
                 TextField(

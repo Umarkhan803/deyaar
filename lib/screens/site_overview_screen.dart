@@ -7,12 +7,11 @@ import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_header.dart';
-import 'daily_attendance_screen.dart';
-import 'labour_screen.dart';
 import 'materials_screen.dart';
-import 'suppliers_screen.dart';
+import 'labour_screen.dart';
+import 'daily_attendance_screen.dart';
 
-/// Labour Overview — matches reference img2.jpeg layout within app theme.
+/// Labour Overview — workers, attendance entry, and payroll snapshot.
 class LabourOverviewScreen extends StatelessWidget {
   const LabourOverviewScreen({super.key});
 
@@ -76,7 +75,7 @@ class LabourOverviewScreen extends StatelessWidget {
                         Text(
                           'DEYAAR CONSTRUCTIONS',
                           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                color: AppColors.muted,
+                                color: AppColors.textMuted(context),
                                 letterSpacing: 0.6,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -87,7 +86,8 @@ class LabourOverviewScreen extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const LabourScreen(initialTab: 0, openAdd: true),
+                        builder: (_) =>
+                            const LabourScreen(initialTab: 0, openAdd: true),
                       ),
                     ),
                     icon: const Icon(Icons.add, size: 18),
@@ -95,7 +95,10 @@ class LabourOverviewScreen extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ],
@@ -173,7 +176,7 @@ class LabourOverviewScreen extends StatelessWidget {
                   _ActionTile(
                     label: 'Attendance',
                     icon: Icons.fact_check_outlined,
-                    highlighted: false,
+                    highlighted: true,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const DailyAttendanceScreen(),
@@ -183,10 +186,20 @@ class LabourOverviewScreen extends StatelessWidget {
                   _ActionTile(
                     label: 'Payroll',
                     icon: Icons.payments_outlined,
-                    highlighted: true,
+                    highlighted: false,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const LabourScreen(initialTab: 2),
+                        builder: (_) => const LabourScreen(initialTab: 1),
+                      ),
+                    ),
+                  ),
+                  _ActionTile(
+                    label: 'Workers',
+                    icon: Icons.engineering_outlined,
+                    highlighted: false,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const LabourScreen(initialTab: 0),
                       ),
                     ),
                   ),
@@ -195,15 +208,9 @@ class LabourOverviewScreen extends StatelessWidget {
                     icon: Icons.inventory_2_outlined,
                     highlighted: false,
                     onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const MaterialsScreen()),
-                    ),
-                  ),
-                  _ActionTile(
-                    label: 'Suppliers',
-                    icon: Icons.local_shipping_outlined,
-                    highlighted: false,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SuppliersScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const MaterialsScreen(),
+                      ),
                     ),
                   ),
                 ],
@@ -248,7 +255,7 @@ class _StatCard extends StatelessWidget {
                     title,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.muted,
+                          color: AppColors.textMuted(context),
                         ),
                   ),
                 ),
@@ -266,18 +273,26 @@ class _StatCard extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
             ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textMuted(context),
+                  ),
+            ),
             if (progress != null) ...[
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: progress!.clamp(0, 1),
-                minHeight: 6,
-                borderRadius: BorderRadius.circular(8),
-                color: AppColors.primaryBlue,
-                backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.15),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress!.clamp(0, 1),
+                  minHeight: 6,
+                  backgroundColor:
+                      AppColors.primaryBlue.withValues(alpha: 0.12),
+                  color: AppColors.primaryBlue,
+                ),
               ),
             ],
-            const SizedBox(height: 6),
-            Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),
@@ -293,24 +308,24 @@ class _WageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.warning.withValues(alpha: 0.55)),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: Theme.of(context).textTheme.labelLarge),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.textMuted(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(
-                color: AppColors.primaryBlue,
-                fontWeight: FontWeight.w800,
-                fontSize: 22,
-              ),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
           ],
         ),
@@ -334,29 +349,28 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = highlighted ? AppColors.primaryBlue.withValues(alpha: 0.85) : null;
-    final fg = highlighted ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final bg = highlighted ? AppColors.primaryBlue : Theme.of(context).cardColor;
+    final fg = highlighted ? Colors.white : AppColors.text(context);
     return Material(
-      color: bg ?? Theme.of(context).cardTheme.color ?? AppColors.surface,
+      color: bg,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: highlighted
-                ? null
-                : Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
               Icon(icon, color: fg),
               const SizedBox(width: 10),
-              Text(
-                label,
-                style: TextStyle(fontWeight: FontWeight.w700, color: fg),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: fg,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
@@ -365,6 +379,3 @@ class _ActionTile extends StatelessWidget {
     );
   }
 }
-
-/// Keep old name as alias so existing imports keep working.
-typedef SiteOverviewScreen = LabourOverviewScreen;

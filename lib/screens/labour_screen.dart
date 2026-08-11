@@ -8,7 +8,6 @@ import '../utils/formatters.dart';
 import '../widgets/date_field.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/form_actions.dart';
-import 'daily_attendance_screen.dart';
 
 class LabourScreen extends StatefulWidget {
   final int initialTab;
@@ -28,9 +27,9 @@ class _LabourScreenState extends State<LabourScreen>
   void initState() {
     super.initState();
     _tabs = TabController(
-      length: 3,
+      length: 2,
       vsync: this,
-      initialIndex: widget.initialTab.clamp(0, 2),
+      initialIndex: widget.initialTab.clamp(0, 1),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_openedAdd && widget.openAdd) {
@@ -58,7 +57,6 @@ class _LabourScreenState extends State<LabourScreen>
           controller: _tabs,
           tabs: const [
             Tab(text: 'Workers'),
-            Tab(text: 'Attendance'),
             Tab(text: 'Payroll'),
           ],
         ),
@@ -67,12 +65,8 @@ class _LabourScreenState extends State<LabourScreen>
         onPressed: () {
           if (_tabs.index == 0) {
             _workerForm(context);
-          } else if (_tabs.index == 1) {
-            // attendance is inline
-          } else {
-            if (app.workers.isNotEmpty) {
-              _recordPayment(context, app.workers.first);
-            }
+          } else if (app.workers.isNotEmpty) {
+            _recordPayment(context, app.workers.first);
           }
         },
         child: const Icon(Icons.add),
@@ -84,7 +78,6 @@ class _LabourScreenState extends State<LabourScreen>
             onOpen: (w) => _openWorkerDetail(context, w),
             onAdd: () => _workerForm(context),
           ),
-          const DailyAttendanceScreen(embedded: true),
           _PayrollTab(
             currency: currency,
             onPay: (w) => _recordPayment(context, w),
@@ -365,24 +358,6 @@ class _LabourScreenState extends State<LabourScreen>
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Card(
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.event_available),
-                          ),
-                          title: const Text('Attendance History'),
-                          subtitle: const Text(
-                            "View this worker's daily attendance.",
-                          ),
-                          onTap: () => Navigator.of(ctx).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  _WorkerAttendanceHistory(worker: w),
-                            ),
-                          ),
-                        ),
-                      ),
                       const SizedBox(height: 8),
                       Card(
                         child: ListTile(
@@ -545,70 +520,6 @@ class _WorkersTab extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _WorkerAttendanceHistory extends StatelessWidget {
-  final Worker worker;
-  const _WorkerAttendanceHistory({required this.worker});
-
-  @override
-  Widget build(BuildContext context) {
-    final records = context
-        .watch<AppProvider>()
-        .attendance
-        .where((a) => a.workerId == worker.id)
-        .toList();
-
-    return Scaffold(
-      appBar: AppBar(title: Text('${worker.name} · Attendance')),
-      body: records.isEmpty
-          ? const EmptyState(
-              message: 'No attendance records yet.',
-              icon: Icons.event_busy_outlined,
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: records.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (_, i) {
-                final a = records[i];
-                Color color;
-                switch (a.status) {
-                  case AttendanceStatus.present:
-                    color = AppColors.primaryBlue;
-                  case AttendanceStatus.absent:
-                    color = AppColors.danger;
-                  case AttendanceStatus.half:
-                    color = AppColors.warning;
-                }
-                return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: color.withValues(alpha: 0.15),
-                      child: Text(
-                        a.status.short,
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      a.statusLabel,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: Text(
-                      '${Formatters.dateDisplay(a.date)}\n'
-                      'Project: ${a.projectName ?? '—'}'
-                      '${a.overtimeHours > 0 ? ' · OT ${a.overtimeHours} hrs' : ''}',
-                    ),
-                    isThreeLine: true,
-                  ),
-                );
-              },
-            ),
     );
   }
 }

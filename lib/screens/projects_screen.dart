@@ -375,10 +375,10 @@ class _ProjectCard extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.place_outlined,
                     size: 14,
-                    color: AppColors.muted,
+                    color: AppColors.textMuted(context),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
@@ -826,7 +826,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         m.done
                             ? Icons.check_circle
                             : Icons.radio_button_unchecked,
-                        color: m.done ? AppColors.primaryBlue : AppColors.muted,
+                        color: m.done
+                            ? AppColors.primaryBlue
+                            : AppColors.textMuted(context),
                       ),
                     ),
                   )

@@ -27,11 +27,16 @@ class PaymentsScreen extends StatelessWidget {
           if (app.reminders.isNotEmpty)
             Container(
               width: double.infinity,
-              color: AppColors.sky,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.navySoft
+                  : AppColors.sky,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Text(
                 '${app.reminders.length} payment reminder(s) due',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text(context),
+                ),
               ),
             ),
           Expanded(
@@ -52,7 +57,7 @@ class PaymentsScreen extends StatelessWidget {
                             p.type == PaymentType.advance
                                 ? Icons.trending_up
                                 : Icons.receipt_long,
-                            color: AppColors.navy,
+                            color: AppColors.primaryBlue,
                           ),
                           title: Text(
                             '${p.type.label} · ${Formatters.money(p.amount, currency: currency)}',

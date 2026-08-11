@@ -32,6 +32,20 @@ class AppColors {
   static const darkBorder = Color(0xFF2A3344);
   static const darkMuted = Color(0xFF8B95A8);
   static const darkText = Color(0xFFF2F5FA);
+
+  /// Primary body/title text: white in dark mode, navy in light mode.
+  static Color text(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return dark ? darkText : navyDeep;
+  }
+
+  /// Secondary / muted text that stays readable on both themes.
+  static Color textMuted(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return dark ? darkMuted : slate;
+  }
+
+  static Color icon(BuildContext context) => text(context);
 }
 
 class AppTheme {
@@ -50,6 +64,7 @@ class AppTheme {
         secondaryContainer: AppColors.skySoft,
         surface: AppColors.surface,
         onSurface: AppColors.navyDeep,
+        onSurfaceVariant: AppColors.slate,
         brightness: Brightness.light,
       ),
       scaffoldBackgroundColor: AppColors.mist,
@@ -78,14 +93,16 @@ class AppTheme {
       brightness: Brightness.dark,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primaryBlue,
-        onPrimary: AppColors.navyDeep,
+        onPrimary: Colors.white,
         primaryContainer: AppColors.navySoft,
         onPrimaryContainer: AppColors.darkText,
         secondary: AppColors.cyan,
         onSecondary: AppColors.navyDeep,
         surface: AppColors.darkSurface,
         onSurface: AppColors.darkText,
+        onSurfaceVariant: AppColors.darkMuted,
         error: AppColors.danger,
+        onError: Colors.white,
       ),
       scaffoldBackgroundColor: AppColors.darkBg,
     );
@@ -127,6 +144,32 @@ class AppTheme {
       textTheme: GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
         bodyColor: bodyColor,
         displayColor: bodyColor,
+      ),
+      primaryTextTheme:
+          GoogleFonts.plusJakartaSansTextTheme(base.primaryTextTheme).apply(
+        bodyColor: bodyColor,
+        displayColor: bodyColor,
+      ),
+      iconTheme: IconThemeData(color: bodyColor),
+      primaryIconTheme: IconThemeData(color: appBarFg),
+      hintColor: unselected,
+      listTileTheme: ListTileThemeData(
+        textColor: bodyColor,
+        iconColor: bodyColor,
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: bodyColor,
+        ),
+        subtitleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          color: unselected,
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: selected,
+        unselectedLabelColor: unselected,
+        indicatorColor: selected,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: appBarBg,
@@ -214,13 +257,29 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: cardColor,
         selectedColor: AppColors.primaryBlue.withValues(alpha: 0.25),
-        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13),
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          color: bodyColor,
+        ),
+        secondaryLabelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          color: bodyColor,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         side: BorderSide(color: cardBorder),
       ),
       dividerColor: cardBorder,
       dialogTheme: DialogThemeData(
         backgroundColor: cardColor,
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: bodyColor,
+        ),
+        contentTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 14,
+          color: bodyColor,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       bottomSheetTheme: BottomSheetThemeData(

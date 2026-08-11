@@ -127,10 +127,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
               const Spacer(flex: 3),
-              const Text(
+              Text(
                 'All data stays on this device. No internet required.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.muted, fontSize: 13),
+                style: TextStyle(
+                  color: AppColors.textMuted(context),
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 20),
             ],

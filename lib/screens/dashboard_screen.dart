@@ -33,7 +33,7 @@ class DashboardScreen extends StatelessWidget {
       color: AppColors.primaryBlue,
       onRefresh: app.refreshAll,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 36),
         children: [
           AppHeader(
             onSearch: () => Navigator.of(context).push(
@@ -45,7 +45,7 @@ class DashboardScreen extends StatelessWidget {
               context,
             ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 28),
           Text(
             _greeting(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -53,7 +53,7 @@ class DashboardScreen extends StatelessWidget {
               color: isDark ? Colors.white70 : AppColors.slate,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Row(
             children: [
               Container(
@@ -92,13 +92,13 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 14,
-            crossAxisSpacing: 14,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
             childAspectRatio: 1.12,
             children: [
               _OverviewCard(
@@ -141,10 +141,10 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 28),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+            padding: const EdgeInsets.fromLTRB(18, 20, 18, 22),
             decoration: BoxDecoration(
               color: cardBg,
               borderRadius: BorderRadius.circular(20),
@@ -159,7 +159,7 @@ class DashboardScreen extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
@@ -237,7 +237,7 @@ class _OverviewCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
