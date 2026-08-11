@@ -207,17 +207,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 SwitchListTile(
                   title: const Text('Fingerprint unlock'),
-                  subtitle: const Text('Use biometrics when available; PIN remains as backup'),
+                  subtitle: const Text(
+                    'Use fingerprint when available; PIN remains as backup',
+                  ),
                   value: app.settings.biometricEnabled,
                   onChanged: (v) async {
                     if (v) {
-                      final can = await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
-                      if (!can) {
-                        if (mounted) {
+                      if (app.settings.pinHash == null) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Set a PIN first, then enable fingerprint unlock',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      try {
+                        final can = await _auth.canCheckBiometrics ||
+                            await _auth.isDeviceSupported();
+                        if (!can) {
+                          if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Biometrics not available on this device')),
+                            const SnackBar(
+                              content: Text(
+                                'Biometrics not available on this device',
+                              ),
+                            ),
                           );
+                          return;
                         }
+                        final enrolled = await _auth.getAvailableBiometrics();
+                        if (enrolled.isEmpty) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'No fingerprint enrolled. Add one in phone settings.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        final ok = await _auth.authenticate(
+                          localizedReason:
+                              'Confirm fingerprint to enable unlock',
+                          biometricOnly: true,
+                          persistAcrossBackgrounding: true,
+                        );
+                        if (!ok) return;
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Could not enable fingerprint: $e',
+                            ),
+                          ),
+                        );
                         return;
                       }
                     }
