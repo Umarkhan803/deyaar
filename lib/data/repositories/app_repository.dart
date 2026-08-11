@@ -127,6 +127,109 @@ class AppRepository {
     await db.delete('projects', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<List<AdminMilestone>> getAdminMilestones() async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'admin_milestones',
+      orderBy: 'sort_order ASC, id ASC',
+    );
+    return rows.map(AdminMilestone.fromMap).toList();
+  }
+
+  Future<int> upsertAdminMilestone(AdminMilestone m) async {
+    final db = await _db.database;
+    final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+    if (m.id == null) {
+      final maxOrder = Sqflite.firstIntValue(
+            await db.rawQuery(
+              'SELECT COALESCE(MAX(sort_order), -1) FROM admin_milestones',
+            ),
+          ) ??
+          -1;
+      final id = await db.insert('admin_milestones', {
+        'title': m.title,
+        'sort_order': maxOrder + 1,
+        'created_at': now,
+      });
+      await _appendMilestoneToAllProjects(m.title, maxOrder + 1);
+      return id;
+    }
+    final existing = await db.query(
+      'admin_milestones',
+      where: 'id = ?',
+      whereArgs: [m.id],
+      limit: 1,
+    );
+    final oldTitle =
+        existing.isEmpty ? m.title : (existing.first['title'] as String? ?? m.title);
+    await db.update(
+      'admin_milestones',
+      {'title': m.title, 'sort_order': m.sortOrder},
+      where: 'id = ?',
+      whereArgs: [m.id],
+    );
+    if (oldTitle != m.title) {
+      await db.update(
+        'project_milestones',
+        {'title': m.title},
+        where: 'title = ?',
+        whereArgs: [oldTitle],
+      );
+    }
+    return m.id!;
+  }
+
+  Future<void> deleteAdminMilestone(int id) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'admin_milestones',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) return;
+    final title = rows.first['title'] as String? ?? '';
+    await db.delete('admin_milestones', where: 'id = ?', whereArgs: [id]);
+    // Remove matching incomplete milestones from projects; keep completed ones.
+    if (title.isNotEmpty) {
+      await db.delete(
+        'project_milestones',
+        where: 'title = ? AND done = 0',
+        whereArgs: [title],
+      );
+    }
+  }
+
+  Future<void> _appendMilestoneToAllProjects(String title, int sortOrder) async {
+    final db = await _db.database;
+    final projects = await db.query('projects', columns: ['id']);
+    for (final p in projects) {
+      final projectId = p['id'] as int;
+      final exists = Sqflite.firstIntValue(
+            await db.rawQuery(
+              'SELECT COUNT(*) FROM project_milestones WHERE project_id = ? AND title = ?',
+              [projectId, title],
+            ),
+          ) ??
+          0;
+      if (exists > 0) continue;
+      await db.insert('project_milestones', {
+        'project_id': projectId,
+        'title': title,
+        'done': 0,
+        'sort_order': sortOrder,
+      });
+    }
+  }
+
+  Future<List<String>> _adminMilestoneTitles() async {
+    final admin = await getAdminMilestones();
+    if (admin.isNotEmpty) {
+      return admin.map((e) => e.title).toList();
+    }
+    return List<String>.from(ProjectMilestone.defaultTitles);
+  }
+
   Future<void> seedMilestonesForProject(int projectId) async {
     final db = await _db.database;
     final existing = Sqflite.firstIntValue(await db.rawQuery(
@@ -134,14 +237,41 @@ class AppRepository {
           [projectId],
         )) ??
         0;
-    if (existing > 0) return;
+    if (existing > 0) {
+      await ensureProjectHasAdminMilestones(projectId);
+      return;
+    }
+    final titles = await _adminMilestoneTitles();
     var i = 0;
-    for (final title in ProjectMilestone.defaultTitles) {
+    for (final title in titles) {
       await db.insert('project_milestones', {
         'project_id': projectId,
         'title': title,
         'done': 0,
         'sort_order': i++,
+      });
+    }
+  }
+
+  /// Adds any new admin milestone titles that are missing on this project.
+  Future<void> ensureProjectHasAdminMilestones(int projectId) async {
+    final db = await _db.database;
+    final admin = await getAdminMilestones();
+    if (admin.isEmpty) return;
+    final rows = await db.query(
+      'project_milestones',
+      columns: ['title'],
+      where: 'project_id = ?',
+      whereArgs: [projectId],
+    );
+    final have = rows.map((e) => e['title'] as String? ?? '').toSet();
+    for (final m in admin) {
+      if (have.contains(m.title)) continue;
+      await db.insert('project_milestones', {
+        'project_id': projectId,
+        'title': m.title,
+        'done': 0,
+        'sort_order': m.sortOrder,
       });
     }
   }
@@ -153,7 +283,7 @@ class AppRepository {
       'project_milestones',
       where: 'project_id = ?',
       whereArgs: [projectId],
-      orderBy: 'sort_order ASC',
+      orderBy: 'sort_order ASC, id ASC',
     );
     return rows.map(ProjectMilestone.fromMap).toList();
   }

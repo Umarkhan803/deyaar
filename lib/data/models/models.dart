@@ -234,6 +234,35 @@ class ProjectMilestone {
   ];
 }
 
+/// Admin-managed milestone templates shown on every project.
+class AdminMilestone {
+  final int? id;
+  final String title;
+  final int sortOrder;
+  final String createdAt;
+
+  const AdminMilestone({
+    this.id,
+    required this.title,
+    this.sortOrder = 0,
+    this.createdAt = '',
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'title': title,
+        'sort_order': sortOrder,
+        'created_at': createdAt,
+      };
+
+  factory AdminMilestone.fromMap(Map<String, Object?> map) => AdminMilestone(
+        id: map['id'] as int?,
+        title: map['title'] as String? ?? '',
+        sortOrder: map['sort_order'] as int? ?? 0,
+        createdAt: map['created_at'] as String? ?? '',
+      );
+}
+
 class Worker {
   final int? id;
   final String name;

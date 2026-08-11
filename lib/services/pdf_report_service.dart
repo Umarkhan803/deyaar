@@ -30,29 +30,37 @@ class PdfReportService {
 
   pw.Widget _brandHeader({
     required String companyName,
-    required String reportLabel,
-    required String generatedAt,
+    String? reportLabel,
+    String? generatedAt,
+    pw.ImageProvider? logo,
   }) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Container(
-          width: 36,
-          height: 36,
-          decoration: pw.BoxDecoration(
-            color: _navy,
-            borderRadius: pw.BorderRadius.circular(6),
-          ),
-          alignment: pw.Alignment.center,
-          child: pw.Text(
-            'D',
-            style: pw.TextStyle(
-              color: PdfColors.white,
-              fontWeight: pw.FontWeight.bold,
-              fontSize: 18,
+        if (logo != null)
+          pw.Container(
+            width: 42,
+            height: 42,
+            child: pw.Image(logo, fit: pw.BoxFit.contain),
+          )
+        else
+          pw.Container(
+            width: 36,
+            height: 36,
+            decoration: pw.BoxDecoration(
+              color: _navy,
+              borderRadius: pw.BorderRadius.circular(6),
+            ),
+            alignment: pw.Alignment.center,
+            child: pw.Text(
+              'D',
+              style: pw.TextStyle(
+                color: PdfColors.white,
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
           ),
-        ),
         pw.SizedBox(width: 10),
         pw.Expanded(
           child: pw.Column(
@@ -75,20 +83,24 @@ class PdfReportService {
             ],
           ),
         ),
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
-          children: [
-            pw.Text(
-              'Generated $generatedAt',
-              style: const pw.TextStyle(color: _muted, fontSize: 9),
-            ),
-            pw.SizedBox(height: 2),
-            pw.Text(
-              reportLabel,
-              style: const pw.TextStyle(color: _muted, fontSize: 9),
-            ),
-          ],
-        ),
+        if (generatedAt != null || reportLabel != null)
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              if (generatedAt != null)
+                pw.Text(
+                  'Generated $generatedAt',
+                  style: const pw.TextStyle(color: _muted, fontSize: 9),
+                ),
+              if (reportLabel != null) ...[
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  reportLabel,
+                  style: const pw.TextStyle(color: _muted, fontSize: 9),
+                ),
+              ],
+            ],
+          ),
       ],
     );
   }
@@ -121,124 +133,82 @@ class PdfReportService {
     required String currency,
     required List<Quotation> quotations,
   }) async {
-    // currency reserved for future priced quotation lines
     final _ = currency;
-    final generatedAt = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
     final doc = pw.Document();
+    pw.ImageProvider? logo;
+    pw.ImageProvider? watermark;
+    try {
+      logo = await imageFromAssetBundle('assets/brand/logo.png');
+    } catch (_) {
+      logo = null;
+    }
+    try {
+      watermark = await imageFromAssetBundle('assets/brand/logo.jpeg');
+    } catch (_) {
+      watermark = logo;
+    }
+
+    final generatedAt = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
 
     doc.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 40),
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.fromLTRB(40, 48, 40, 44),
+          buildBackground: (context) {
+            final wm = watermark;
+            if (wm == null) return pw.SizedBox();
+            return pw.FullPage(
+              ignoreMargins: true,
+              child: pw.Center(
+                child: pw.Opacity(
+                  opacity: 0.07,
+                  child: pw.Image(
+                    wm,
+                    width: 340,
+                    fit: pw.BoxFit.contain,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
         build: (context) => [
           _brandHeader(
             companyName: companyName,
             reportLabel: 'Quotation Report',
             generatedAt: generatedAt,
+            logo: logo,
           ),
-          pw.SizedBox(height: 22),
+          pw.SizedBox(height: 14),
+          pw.Divider(color: PdfColors.grey300, thickness: 0.8),
+          pw.SizedBox(height: 16),
           pw.Text(
             'Quotation Report',
             style: pw.TextStyle(
-              fontSize: 22,
+              color: _navy,
+              fontSize: 20,
               fontWeight: pw.FontWeight.bold,
-              color: PdfColors.black,
-            ),
-          ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            'Period: All time • Items: ${quotations.length}',
-            style: const pw.TextStyle(color: _muted, fontSize: 11),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Divider(color: PdfColors.grey300, thickness: 0.8),
-          pw.SizedBox(height: 12),
-          pw.Wrap(
-            spacing: 24,
-            runSpacing: 10,
-            children: [
-              _stat('Quotations selected', '${quotations.length}'),
-              _stat('Report lines', '${quotations.length}'),
-            ],
-          ),
-          pw.SizedBox(height: 18),
-          _sectionBar('Quotation items'),
-          pw.SizedBox(height: 8),
-          if (quotations.isEmpty)
-            pw.Padding(
-              padding: const pw.EdgeInsets.symmetric(vertical: 8),
-              child: pw.Text(
-                'No quotations selected.',
-                style: const pw.TextStyle(color: _muted, fontSize: 11),
-              ),
-            )
-          else
-            ...quotations.asMap().entries.map((e) {
-              final i = e.key + 1;
-              final q = e.value;
-              return pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 8),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Container(
-                      width: 22,
-                      height: 22,
-                      alignment: pw.Alignment.center,
-                      decoration: pw.BoxDecoration(
-                        color: _navySoft,
-                        borderRadius: pw.BorderRadius.circular(4),
-                      ),
-                      child: pw.Text(
-                        '$i',
-                        style: pw.TextStyle(
-                          color: _navy,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                    pw.SizedBox(width: 10),
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            q.title,
-                            style: const pw.TextStyle(fontSize: 11),
-                          ),
-                          if (q.createdAt.isNotEmpty)
-                            pw.Text(
-                              q.createdAt,
-                              style: const pw.TextStyle(
-                                color: _muted,
-                                fontSize: 9,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          pw.SizedBox(height: 16),
-          _sectionBar(
-            'TOTAL QUOTATIONS',
-            trailing: pw.Text(
-              '${quotations.length}',
-              style: pw.TextStyle(
-                color: _green,
-                fontWeight: pw.FontWeight.bold,
-                fontSize: 12,
-              ),
             ),
           ),
           pw.SizedBox(height: 14),
-          pw.Text(
-            '* Quotation report generated from selected Admin quotation items.',
-            style: const pw.TextStyle(color: _muted, fontSize: 8),
-          ),
+          pw.Divider(color: PdfColors.grey300, thickness: 0.8),
+          pw.SizedBox(height: 14),
+          if (quotations.isEmpty)
+            pw.Text(
+              'No items.',
+              style: const pw.TextStyle(color: _muted, fontSize: 11),
+            )
+          else
+            ...quotations.map(
+              (q) => pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 10),
+                child: pw.Text(
+                  q.title,
+                  style: const pw.TextStyle(fontSize: 12, lineSpacing: 1.3),
+                ),
+              ),
+            ),
         ],
       ),
     );

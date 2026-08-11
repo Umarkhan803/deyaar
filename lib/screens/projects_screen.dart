@@ -510,10 +510,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         sortOrder: m.sortOrder,
       ),
     );
-    final doneCount = (await repo.getMilestones(
-      widget.projectId,
-    )).where((e) => e.done).length;
-    final progress = (doneCount / ProjectMilestone.defaultTitles.length) * 100;
+    final milestones = await repo.getMilestones(widget.projectId);
+    final doneCount = milestones.where((e) => e.done).length;
+    final total = milestones.isEmpty ? 1 : milestones.length;
+    final progress = (doneCount / total) * 100;
     final p = _project;
     if (p != null) {
       await context.read<AppProvider>().saveProject(

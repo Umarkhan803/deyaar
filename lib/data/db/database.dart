@@ -17,17 +17,19 @@ class AppDatabase {
     final path = join(dbPath, 'deyaar_constructions.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         await _createV1(db);
         await _upgradeToV2(db);
         await _upgradeToV3(db);
         await _upgradeToV4(db);
+        await _upgradeToV5(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) await _upgradeToV2(db);
         if (oldVersion < 3) await _upgradeToV3(db);
         if (oldVersion < 4) await _upgradeToV4(db);
+        if (oldVersion < 5) await _upgradeToV5(db);
       },
     );
   }
@@ -239,6 +241,49 @@ class AppDatabase {
         updated_at TEXT NOT NULL DEFAULT ''
       )
     ''');
+  }
+
+  Future<void> _upgradeToV5(Database db) async {
+    Future<void> tryExec(String sql) async {
+      try {
+        await db.execute(sql);
+      } catch (_) {}
+    }
+
+    await tryExec('''
+      CREATE TABLE IF NOT EXISTS admin_milestones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT ''
+      )
+    ''');
+
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM admin_milestones'),
+        ) ??
+        0;
+    if (count == 0) {
+      const defaults = [
+        'Foundation',
+        'Columns',
+        'Roof',
+        'Plastering',
+        'Flooring',
+        'Painting',
+        'Electrical',
+        'Plumbing',
+        'Finishing',
+      ];
+      var i = 0;
+      for (final title in defaults) {
+        await db.insert('admin_milestones', {
+          'title': title,
+          'sort_order': i++,
+          'created_at': '',
+        });
+      }
+    }
   }
 
   Future<void> close() async {

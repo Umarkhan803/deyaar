@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/module_tile.dart';
+import 'admin_milestones_screen.dart';
 import 'quotation_screen.dart';
 
-/// Admin hub — entry for Quotation and future admin tools.
+/// Admin hub — Quotation, Milestones and future admin tools.
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
 
@@ -24,7 +25,7 @@ class AdminScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Manage quotations and admin tools',
+            'Manage quotations, milestones and admin tools',
             style: TextStyle(color: Theme.of(context).hintColor),
           ),
           const SizedBox(height: 16),
@@ -35,6 +36,16 @@ class AdminScreen extends StatelessWidget {
             accent: AppColors.primaryBlue,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const QuotationScreen()),
+            ),
+          ),
+          const SizedBox(height: 10),
+          ModuleTile(
+            title: 'Milestones',
+            subtitle: 'Add items shown on every project milestone list',
+            icon: Icons.flag_outlined,
+            accent: AppColors.primaryBlue,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AdminMilestonesScreen()),
             ),
           ),
         ],

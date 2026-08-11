@@ -33,7 +33,7 @@ class DashboardScreen extends StatelessWidget {
       color: AppColors.primaryBlue,
       onRefresh: app.refreshAll,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
           AppHeader(
             onSearch: () => Navigator.of(context).push(
@@ -45,7 +45,7 @@ class DashboardScreen extends StatelessWidget {
               context,
             ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 22),
           Text(
             _greeting(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
