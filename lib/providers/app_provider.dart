@@ -22,6 +22,7 @@ class AppProvider extends ChangeNotifier {
   List<Payment> payments = [];
   List<Payment> reminders = [];
   List<Supplier> suppliers = [];
+  List<Quotation> quotations = [];
   Map<String, double> monthlyExpenses = {};
 
   ThemeMode get themeMode => AppTheme.themeModeFromString(settings.themeMode.name);
@@ -64,6 +65,7 @@ class AppProvider extends ChangeNotifier {
     payments = await repo.getPayments();
     reminders = await repo.getPaymentReminders();
     suppliers = await repo.getSuppliers();
+    quotations = await repo.getQuotations();
     monthlyExpenses = await repo.monthlyExpensesLast6();
     notifyListeners();
   }
@@ -176,6 +178,18 @@ class AppProvider extends ChangeNotifier {
     await repo.deleteSupplier(id);
     suppliers = await repo.getSuppliers();
     materials = await repo.getMaterials();
+    notifyListeners();
+  }
+
+  Future<void> saveQuotation(Quotation q) async {
+    await repo.upsertQuotation(q);
+    quotations = await repo.getQuotations();
+    notifyListeners();
+  }
+
+  Future<void> removeQuotation(int id) async {
+    await repo.deleteQuotation(id);
+    quotations = await repo.getQuotations();
     notifyListeners();
   }
 

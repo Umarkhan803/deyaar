@@ -547,6 +547,48 @@ class AppRepository {
     await db.delete('site_photos', where: 'id = ?', whereArgs: [id]);
   }
 
+  // ---------- Quotations ----------
+  Future<List<Quotation>> getQuotations() async {
+    final db = await _db.database;
+    final rows = await db.query('quotations', orderBy: 'created_at DESC, id DESC');
+    return rows.map(Quotation.fromMap).toList();
+  }
+
+  Future<int> upsertQuotation(Quotation q) async {
+    final db = await _db.database;
+    final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+    if (q.id == null) {
+      return db.insert('quotations', {
+        'title': q.title,
+        'created_at': now,
+        'updated_at': now,
+      });
+    }
+    await db.update(
+      'quotations',
+      {'title': q.title, 'updated_at': now},
+      where: 'id = ?',
+      whereArgs: [q.id],
+    );
+    return q.id!;
+  }
+
+  Future<void> deleteQuotation(int id) async {
+    final db = await _db.database;
+    await db.delete('quotations', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<Quotation>> getQuotationsByIds(List<int> ids) async {
+    if (ids.isEmpty) return [];
+    final db = await _db.database;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final rows = await db.rawQuery(
+      'SELECT * FROM quotations WHERE id IN ($placeholders) ORDER BY created_at ASC, id ASC',
+      ids,
+    );
+    return rows.map(Quotation.fromMap).toList();
+  }
+
   Future<DashboardStats> getDashboardStats() async {
     final db = await _db.database;
     final projects = await db.rawQuery('''

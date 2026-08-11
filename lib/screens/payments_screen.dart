@@ -65,9 +65,6 @@ class PaymentsScreen extends StatelessWidget {
                           ),
                           isThreeLine: true,
                           onTap: () => _openForm(context, payment: p),
-                          onLongPress: () async {
-                            if (p.id != null) await app.removePayment(p.id!);
-                          },
                         ),
                       );
                     },

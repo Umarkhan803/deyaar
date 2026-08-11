@@ -63,9 +63,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                     isThreeLine: e.note.isNotEmpty,
                     onTap: () => _openForm(context, expense: e),
-                    onLongPress: () async {
-                      if (e.id != null) await app.removeExpense(e.id!);
-                    },
                   ),
                 );
               },

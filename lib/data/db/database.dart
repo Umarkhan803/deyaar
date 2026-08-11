@@ -17,15 +17,17 @@ class AppDatabase {
     final path = join(dbPath, 'deyaar_constructions.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await _createV1(db);
         await _upgradeToV2(db);
         await _upgradeToV3(db);
+        await _upgradeToV4(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) await _upgradeToV2(db);
         if (oldVersion < 3) await _upgradeToV3(db);
+        if (oldVersion < 4) await _upgradeToV4(db);
       },
     );
   }
@@ -220,6 +222,23 @@ class AppDatabase {
     await tryExec(
       'ALTER TABLE attendance ADD COLUMN overtime_hours REAL NOT NULL DEFAULT 0',
     );
+  }
+
+  Future<void> _upgradeToV4(Database db) async {
+    Future<void> tryExec(String sql) async {
+      try {
+        await db.execute(sql);
+      } catch (_) {}
+    }
+
+    await tryExec('''
+      CREATE TABLE IF NOT EXISTS quotations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT ''
+      )
+    ''');
   }
 
   Future<void> close() async {

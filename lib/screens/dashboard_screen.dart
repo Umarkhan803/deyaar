@@ -45,7 +45,7 @@ class DashboardScreen extends StatelessWidget {
               context,
             ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             _greeting(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -53,7 +53,7 @@ class DashboardScreen extends StatelessWidget {
               color: isDark ? Colors.white70 : AppColors.slate,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Row(
             children: [
               Container(
@@ -92,14 +92,14 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.15,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 14,
+            childAspectRatio: 1.12,
             children: [
               _OverviewCard(
                 background: cardBg,
@@ -141,7 +141,7 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 22),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),

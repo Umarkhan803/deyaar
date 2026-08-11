@@ -65,35 +65,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _openForm(context, client: c),
-                    onLongPress: () => _confirmDelete(context, c),
                   ),
                 );
               },
             ),
     );
-  }
-
-  Future<void> _confirmDelete(BuildContext context, Client c) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete client?'),
-        content: Text('Remove ${c.name}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok == true && context.mounted && c.id != null) {
-      await context.read<AppProvider>().removeClient(c.id!);
-    }
   }
 
   Future<void> _openForm(BuildContext context, {Client? client}) async {

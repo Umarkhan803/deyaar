@@ -518,9 +518,10 @@ class _WorkersTab extends StatelessWidget {
         onAction: onAdd,
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
       itemCount: app.workers.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 4),
       itemBuilder: (_, i) {
         final w = app.workers[i];
         return Card(
@@ -541,9 +542,6 @@ class _WorkersTab extends StatelessWidget {
             ),
             isThreeLine: true,
             onTap: () => onOpen(w),
-            onLongPress: () async {
-              if (w.id != null) await app.removeWorker(w.id!);
-            },
           ),
         );
       },
@@ -671,14 +669,14 @@ class _PayrollTab extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Text(
           'Weekly Wages',
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         if (app.workers.isEmpty)
           const EmptyState(
             message: 'No workers on payroll.',

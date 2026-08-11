@@ -719,6 +719,34 @@ class Payment {
       );
 }
 
+class Quotation {
+  final int? id;
+  final String title;
+  final String createdAt;
+  final String updatedAt;
+
+  const Quotation({
+    this.id,
+    required this.title,
+    this.createdAt = '',
+    this.updatedAt = '',
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'title': title,
+        'created_at': createdAt,
+        'updated_at': updatedAt,
+      };
+
+  factory Quotation.fromMap(Map<String, Object?> map) => Quotation(
+        id: map['id'] as int?,
+        title: map['title'] as String? ?? '',
+        createdAt: map['created_at'] as String? ?? '',
+        updatedAt: map['updated_at'] as String? ?? '',
+      );
+}
+
 class SitePhoto {
   final int? id;
   final int projectId;

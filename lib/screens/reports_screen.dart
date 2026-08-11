@@ -10,13 +10,11 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/pdf_report_service.dart';
 import '../theme/app_theme.dart';
+import 'quotation_screen.dart';
 
 enum ReportKind {
   materialUsage,
   labourCost,
-  projectExpenses,
-  profitLoss,
-  businessSummary,
 }
 
 class ReportsScreen extends StatefulWidget {
@@ -40,29 +38,72 @@ class _ReportsScreenState extends State<ReportsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Choose a report', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
+          Text(
+            'Choose a report',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
           ...ReportKind.values.map((k) {
             final meta = _meta(k);
             final selected = _kind == k;
-            return Card(
-              color: selected ? AppColors.primaryBlue.withValues(alpha: 0.18) : null,
-              child: RadioListTile<ReportKind>(
-                value: k,
-                // ignore: deprecated_member_use
-                groupValue: _kind,
-                onChanged: (v) => setState(() => _kind = v ?? _kind),
-                title: Text(meta.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(meta.$2),
-                secondary: Icon(meta.$3, color: AppColors.primaryBlue),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Card(
+                color: selected
+                    ? AppColors.primaryBlue.withValues(alpha: 0.18)
+                    : null,
+                child: RadioListTile<ReportKind>(
+                  value: k,
+                  // ignore: deprecated_member_use
+                  groupValue: _kind,
+                  onChanged: (v) => setState(() => _kind = v ?? _kind),
+                  title: Text(
+                    meta.$1,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(meta.$2),
+                  secondary: Icon(meta.$3, color: AppColors.primaryBlue),
+                ),
               ),
             );
           }),
+          const SizedBox(height: 4),
+          Card(
+            child: ListTile(
+              leading: const Icon(
+                Icons.request_quote_outlined,
+                color: AppColors.primaryBlue,
+              ),
+              title: const Text(
+                'Quotation Report',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: const Text(
+                'Select quotations and export a branded PDF',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const QuotationReportScreen(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Period',
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 12),
-          Text('Period', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
           Wrap(
-            spacing: 8,
+            spacing: 10,
+            runSpacing: 10,
             children: [
               for (final e in const [
                 ('all', 'All time'),
@@ -84,7 +125,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             decoration: const InputDecoration(labelText: 'Project'),
             items: [
               const DropdownMenuItem(value: null, child: Text('All projects')),
-              ...app.projects.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))),
+              ...app.projects.map(
+                (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
+              ),
             ],
             onChanged: (v) => setState(() => _projectId = v),
           ),
@@ -105,15 +148,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
   (String, String, IconData) _meta(ReportKind k) {
     switch (k) {
       case ReportKind.materialUsage:
-        return ('Material Usage', 'Quantity purchased, used and remaining per material', Icons.inventory_2_outlined);
+        return (
+          'Material Usage',
+          'Quantity purchased, used and remaining per material',
+          Icons.inventory_2_outlined,
+        );
       case ReportKind.labourCost:
-        return ('Labour Cost', 'Wages paid, attendance and cost per project', Icons.groups_outlined);
-      case ReportKind.projectExpenses:
-        return ('Project Expenses', 'Spend by heading, category and project', Icons.receipt_long_outlined);
-      case ReportKind.profitLoss:
-        return ('Profit / Loss', 'Contract value against payments received and costs', Icons.show_chart);
-      case ReportKind.businessSummary:
-        return ('Business Summary', 'Portfolio-wide position at a glance', Icons.bar_chart);
+        return (
+          'Labour Cost',
+          'Wages paid, attendance and cost per project',
+          Icons.groups_outlined,
+        );
     }
   }
 
@@ -147,7 +192,9 @@ class PdfPreviewScreen extends StatelessWidget {
 
   Future<void> _download(BuildContext context) async {
     final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'deyaar_${DateTime.now().millisecondsSinceEpoch}.pdf'));
+    final file = File(
+      p.join(dir.path, 'deyaar_${DateTime.now().millisecondsSinceEpoch}.pdf'),
+    );
     await file.writeAsBytes(bytes);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -169,7 +216,10 @@ class PdfPreviewScreen extends StatelessWidget {
           ),
           IconButton(
             tooltip: 'Share',
-            onPressed: () => Printing.sharePdf(bytes: bytes, filename: 'deyaar_report.pdf'),
+            onPressed: () => Printing.sharePdf(
+              bytes: bytes,
+              filename: 'deyaar_report.pdf',
+            ),
             icon: const Icon(Icons.share_outlined),
           ),
         ],

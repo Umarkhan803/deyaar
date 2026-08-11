@@ -42,9 +42,6 @@ class SuppliersScreen extends StatelessWidget {
                       ].join(' · '),
                     ),
                     onTap: () => _openForm(context, supplier: s),
-                    onLongPress: () async {
-                      if (s.id != null) await app.removeSupplier(s.id!);
-                    },
                   ),
                 );
               },

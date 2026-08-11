@@ -21,8 +21,13 @@ class ModuleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = accent ?? AppColors.navy;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppColors.darkCard : Colors.white;
+    final titleColor = isDark ? AppColors.darkText : AppColors.navyDeep;
+    final border = isDark ? AppColors.darkBorder : AppColors.border;
+
     return Material(
-      color: Colors.white,
+      color: bg,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -31,7 +36,7 @@ class ModuleTile extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: border),
           ),
           child: Row(
             children: [
@@ -39,10 +44,10 @@ class ModuleTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: color.withValues(alpha: isDark ? 0.22 : 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: color),
+                child: Icon(icon, color: isDark ? AppColors.primaryBlue : color),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -51,24 +56,27 @@ class ModuleTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
-                        color: AppColors.navyDeep,
+                        color: titleColor,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: AppColors.muted,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkMuted : AppColors.muted,
                         fontSize: 13,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.muted),
+              Icon(
+                Icons.chevron_right,
+                color: isDark ? AppColors.darkMuted : AppColors.muted,
+              ),
             ],
           ),
         ),
