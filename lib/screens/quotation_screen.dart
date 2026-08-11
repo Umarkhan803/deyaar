@@ -186,7 +186,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
   }
 }
 
-/// Multi-select quotations and export PDF (milestone-style checkboxes).
+/// Multi-select quotations and export PDF (merged with Cost of Construction).
 class QuotationReportScreen extends StatefulWidget {
   const QuotationReportScreen({super.key});
 
@@ -196,11 +196,20 @@ class QuotationReportScreen extends StatefulWidget {
 
 class _QuotationReportScreenState extends State<QuotationReportScreen> {
   final Set<int> _selected = {};
+  final _note = TextEditingController();
   bool _busy = false;
 
   @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final items = context.watch<AppProvider>().quotations;
+    final app = context.watch<AppProvider>();
+    final items = app.quotations;
+    final costItems = app.costConstructionItems;
 
     return Scaffold(
       appBar: AppBar(
@@ -225,10 +234,10 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
             ),
         ],
       ),
-      body: items.isEmpty
+      body: items.isEmpty && costItems.isEmpty
           ? const EmptyState(
               message:
-                  'No quotations to export. Add some under Admin → Quotation.',
+                  'Add quotations and cost lines under Admin before exporting.',
               icon: Icons.request_quote_outlined,
             )
           : ListView(
@@ -242,38 +251,119 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Choose one or more items, then export PDF.',
+                  'Choose items to include in the PDF.',
                   style: TextStyle(color: Theme.of(context).hintColor),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  child: Column(
-                    children: items.map((q) {
-                      final id = q.id!;
-                      final checked = _selected.contains(id);
-                      return CheckboxListTile(
-                        value: checked,
-                        onChanged: (v) {
-                          setState(() {
-                            if (v == true) {
-                              _selected.add(id);
-                            } else {
-                              _selected.remove(id);
-                            }
-                          });
-                        },
-                        title: Text(q.title),
-                        subtitle: q.createdAt.isEmpty ? null : Text(q.createdAt),
-                        secondary: Icon(
-                          checked
-                              ? Icons.check_circle
-                              : Icons.radio_button_unchecked,
-                          color: checked
-                              ? AppColors.primaryBlue
-                              : AppColors.muted,
+                if (items.isEmpty)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('No quotations yet. Add some under Admin → Quotation.'),
+                    ),
+                  )
+                else
+                  Card(
+                    child: Column(
+                      children: items.map((q) {
+                        final id = q.id!;
+                        final checked = _selected.contains(id);
+                        return CheckboxListTile(
+                          value: checked,
+                          onChanged: (v) {
+                            setState(() {
+                              if (v == true) {
+                                _selected.add(id);
+                              } else {
+                                _selected.remove(id);
+                              }
+                            });
+                          },
+                          title: Text(q.title),
+                          subtitle:
+                              q.createdAt.isEmpty ? null : Text(q.createdAt),
+                          secondary: Icon(
+                            checked
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                            color: checked
+                                ? AppColors.primaryBlue
+                                : AppColors.muted,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                if (costItems.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Cost of construction',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
                         ),
-                      );
-                    }).toList(),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Preview from Admin → Cost of Construction (merged into PDF).',
+                    style: TextStyle(color: Theme.of(context).hintColor),
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Cost of construction:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontStyle: FontStyle.italic,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ...costItems.map((item) {
+                            final line = item.value.trim().isEmpty
+                                ? item.label
+                                : '${item.label} = ${item.value}';
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                line,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Text(
+                  'Note / description',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Optional text included at the end of the PDF.',
+                  style: TextStyle(color: Theme.of(context).hintColor),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _note,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Note',
+                    hintText:
+                        'e.g. Duration for the construction of whole building will be 3 to 4 months…',
+                    alignLabelWithHint: true,
                   ),
                 ),
               ],
@@ -282,10 +372,14 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: ElevatedButton.icon(
-            onPressed: _busy || _selected.isEmpty ? null : _export,
+            onPressed: _busy || (_selected.isEmpty && costItems.isEmpty)
+                ? null
+                : _export,
             icon: const Icon(Icons.picture_as_pdf_outlined),
             label: Text(
-              _busy ? 'Exporting…' : 'Export PDF (${_selected.length})',
+              _busy
+                  ? 'Exporting…'
+                  : 'Export PDF${_selected.isEmpty ? '' : ' (${_selected.length})'}',
             ),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
@@ -300,11 +394,15 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
     setState(() => _busy = true);
     try {
       final app = context.read<AppProvider>();
-      final selected = await app.repo.getQuotationsByIds(_selected.toList());
+      final selected = _selected.isEmpty
+          ? <Quotation>[]
+          : await app.repo.getQuotationsByIds(_selected.toList());
       final bytes = await PdfReportService(app.repo).buildQuotationReportBytes(
         companyName: app.settings.companyName,
         currency: app.settings.currency,
         quotations: selected,
+        costItems: app.costConstructionItems,
+        note: _note.text.trim(),
       );
       if (!mounted) return;
       await Navigator.of(context).push(
@@ -320,3 +418,4 @@ class _QuotationReportScreenState extends State<QuotationReportScreen> {
     }
   }
 }
+

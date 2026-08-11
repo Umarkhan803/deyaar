@@ -719,6 +719,51 @@ class AppRepository {
     return rows.map(Quotation.fromMap).toList();
   }
 
+  // ---------- Cost of Construction (admin key/value templates) ----------
+  Future<List<CostConstructionItem>> getCostConstructionItems() async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'cost_construction_items',
+      orderBy: 'sort_order ASC, id ASC',
+    );
+    return rows.map(CostConstructionItem.fromMap).toList();
+  }
+
+  Future<int> upsertCostConstructionItem(CostConstructionItem item) async {
+    final db = await _db.database;
+    final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+    if (item.id == null) {
+      final maxOrder = Sqflite.firstIntValue(
+            await db.rawQuery(
+              'SELECT COALESCE(MAX(sort_order), -1) FROM cost_construction_items',
+            ),
+          ) ??
+          -1;
+      return db.insert('cost_construction_items', {
+        'label': item.label,
+        'value': item.value,
+        'sort_order': maxOrder + 1,
+        'created_at': now,
+      });
+    }
+    await db.update(
+      'cost_construction_items',
+      {
+        'label': item.label,
+        'value': item.value,
+        'sort_order': item.sortOrder,
+      },
+      where: 'id = ?',
+      whereArgs: [item.id],
+    );
+    return item.id!;
+  }
+
+  Future<void> deleteCostConstructionItem(int id) async {
+    final db = await _db.database;
+    await db.delete('cost_construction_items', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<DashboardStats> getDashboardStats() async {
     final db = await _db.database;
     final projects = await db.rawQuery('''

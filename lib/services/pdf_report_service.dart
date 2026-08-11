@@ -132,6 +132,8 @@ class PdfReportService {
     required String companyName,
     required String currency,
     required List<Quotation> quotations,
+    List<CostConstructionItem> costItems = const [],
+    String note = '',
   }) async {
     final _ = currency;
     final doc = pw.Document();
@@ -143,6 +145,7 @@ class PdfReportService {
       logo = null;
     }
     try {
+      // Full brand mark (dark navy) used faintly as page watermark.
       watermark = await imageFromAssetBundle('assets/brand/logo.jpeg');
     } catch (_) {
       watermark = logo;
@@ -150,11 +153,22 @@ class PdfReportService {
 
     final generatedAt = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
 
+    // Use admin-stored label/value as-is (no project resolution on export).
+    final resolvedCost = costItems
+        .map((item) => (label: item.label, value: item.value.trim()))
+        .toList();
+
     doc.addPage(
       pw.MultiPage(
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.fromLTRB(40, 48, 40, 44),
+          theme: pw.ThemeData.withFont(
+            base: pw.Font.times(),
+            bold: pw.Font.timesBold(),
+            italic: pw.Font.timesItalic(),
+            boldItalic: pw.Font.timesBoldItalic(),
+          ),
           buildBackground: (context) {
             final wm = watermark;
             if (wm == null) return pw.SizedBox();
@@ -162,10 +176,11 @@ class PdfReportService {
               ignoreMargins: true,
               child: pw.Center(
                 child: pw.Opacity(
-                  opacity: 0.07,
+                  // Dark navy logo, lightly transparent over white page.
+                  opacity: 0.14,
                   child: pw.Image(
                     wm,
-                    width: 340,
+                    width: 360,
                     fit: pw.BoxFit.contain,
                   ),
                 ),
@@ -181,7 +196,7 @@ class PdfReportService {
             logo: logo,
           ),
           pw.SizedBox(height: 14),
-          pw.Divider(color: PdfColors.grey300, thickness: 0.8),
+          pw.Divider(color: PdfColors.grey400, thickness: 0.9),
           pw.SizedBox(height: 16),
           pw.Text(
             'Quotation Report',
@@ -196,7 +211,7 @@ class PdfReportService {
           pw.SizedBox(height: 14),
           if (quotations.isEmpty)
             pw.Text(
-              'No items.',
+              'No quotation items.',
               style: const pw.TextStyle(color: _muted, fontSize: 11),
             )
           else
@@ -209,6 +224,62 @@ class PdfReportService {
                 ),
               ),
             ),
+          if (resolvedCost.isNotEmpty) ...[
+            pw.SizedBox(height: 22),
+            pw.Text(
+              'Cost of construction:',
+              style: pw.TextStyle(
+                color: _navy,
+                fontSize: 14,
+                fontWeight: pw.FontWeight.bold,
+                fontStyle: pw.FontStyle.italic,
+                decoration: pw.TextDecoration.underline,
+              ),
+            ),
+            pw.SizedBox(height: 10),
+            ...resolvedCost.map(
+              (line) => pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 8),
+                child: pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(
+                        text: line.label,
+                        style: pw.TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: pw.FontWeight.bold,
+                          fontStyle: pw.FontStyle.italic,
+                          color: PdfColors.black,
+                        ),
+                      ),
+                      if (line.value.isNotEmpty)
+                        pw.TextSpan(
+                          text: ' = ${line.value}',
+                          style: pw.TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: pw.FontWeight.bold,
+                            fontStyle: pw.FontStyle.italic,
+                            color: PdfColors.black,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+          if (note.trim().isNotEmpty) ...[
+            pw.SizedBox(height: 18),
+            pw.Text(
+              note.trim(),
+              style: pw.TextStyle(
+                fontSize: 11.5,
+                fontWeight: pw.FontWeight.bold,
+                fontStyle: pw.FontStyle.italic,
+                lineSpacing: 1.35,
+              ),
+            ),
+          ],
         ],
       ),
     );

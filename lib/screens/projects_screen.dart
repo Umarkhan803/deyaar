@@ -24,6 +24,23 @@ Future<bool?> openProjectEditor(BuildContext context, {Project? project}) async 
   final progress = TextEditingController(
     text: (project?.progress ?? 0).toStringAsFixed(0),
   );
+  final area = TextEditingController(
+    text: (project?.coveredAreaSft ?? 0) == 0
+        ? ''
+        : (project!.coveredAreaSft == project.coveredAreaSft.roundToDouble()
+            ? project.coveredAreaSft.toStringAsFixed(0)
+            : project.coveredAreaSft.toStringAsFixed(2)),
+  );
+  final rate = TextEditingController(
+    text: (project?.ratePerSft ?? 0) == 0
+        ? ''
+        : (project!.ratePerSft == project.ratePerSft.roundToDouble()
+            ? project.ratePerSft.toStringAsFixed(0)
+            : project.ratePerSft.toStringAsFixed(2)),
+  );
+  final duration = TextEditingController(
+    text: project?.constructionDuration ?? '',
+  );
   var status = project?.status ?? ProjectStatus.planning;
   var clientId = project?.clientId;
   var start = project?.startDate ?? Formatters.todayIso();
@@ -89,6 +106,46 @@ Future<bool?> openProjectEditor(BuildContext context, {Project? project}) async 
                 value: end,
                 onChanged: (v) => setModal(() => end = v),
               ),
+              const SizedBox(height: 20),
+              Text(
+                'Cost of Construction',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Used when exporting Quotation Report for this project.',
+                style: TextStyle(color: Theme.of(ctx).hintColor, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: area,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Covered area (sft)',
+                  hintText: 'e.g. 600',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: rate,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Rate per sft',
+                  hintText: 'e.g. 2200',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: duration,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Duration / note',
+                  hintText:
+                      'e.g. 3 to 4 months from commencement of work…',
+                ),
+              ),
               const SizedBox(height: 24),
               FormActions(
                 primaryLabel: project == null ? 'Save Project' : 'Update',
@@ -105,6 +162,9 @@ Future<bool?> openProjectEditor(BuildContext context, {Project? project}) async 
                       progress: double.tryParse(progress.text) ?? 0,
                       startDate: start,
                       expectedEnd: end,
+                      coveredAreaSft: double.tryParse(area.text.trim()) ?? 0,
+                      ratePerSft: double.tryParse(rate.text.trim()) ?? 0,
+                      constructionDuration: duration.text.trim(),
                     ),
                   );
                   if (ctx.mounted) Navigator.pop(ctx, true);

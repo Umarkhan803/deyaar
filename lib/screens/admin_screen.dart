@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/module_tile.dart';
 import 'admin_milestones_screen.dart';
+import 'cost_construction_screen.dart';
 import 'quotation_screen.dart';
 
-/// Admin hub — Quotation, Milestones and future admin tools.
+/// Admin hub — Quotation, Milestones, Cost of Construction.
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
 
@@ -25,7 +26,7 @@ class AdminScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Manage quotations, milestones and admin tools',
+            'Manage quotations, milestones and cost templates',
             style: TextStyle(color: Theme.of(context).hintColor),
           ),
           const SizedBox(height: 16),
@@ -46,6 +47,16 @@ class AdminScreen extends StatelessWidget {
             accent: AppColors.primaryBlue,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const AdminMilestonesScreen()),
+            ),
+          ),
+          const SizedBox(height: 10),
+          ModuleTile(
+            title: 'Cost of Construction',
+            subtitle: 'Dynamic key/value lines merged into quotation PDF',
+            icon: Icons.calculate_outlined,
+            accent: AppColors.primaryBlue,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CostConstructionScreen()),
             ),
           ),
         ],

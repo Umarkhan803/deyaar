@@ -17,19 +17,21 @@ class AppDatabase {
     final path = join(dbPath, 'deyaar_constructions.db');
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: (db, version) async {
         await _createV1(db);
         await _upgradeToV2(db);
         await _upgradeToV3(db);
         await _upgradeToV4(db);
         await _upgradeToV5(db);
+        await _upgradeToV6(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) await _upgradeToV2(db);
         if (oldVersion < 3) await _upgradeToV3(db);
         if (oldVersion < 4) await _upgradeToV4(db);
         if (oldVersion < 5) await _upgradeToV5(db);
+        if (oldVersion < 6) await _upgradeToV6(db);
       },
     );
   }
@@ -279,6 +281,68 @@ class AppDatabase {
       for (final title in defaults) {
         await db.insert('admin_milestones', {
           'title': title,
+          'sort_order': i++,
+          'created_at': '',
+        });
+      }
+    }
+  }
+
+  Future<void> _upgradeToV6(Database db) async {
+    Future<void> tryExec(String sql) async {
+      try {
+        await db.execute(sql);
+      } catch (_) {}
+    }
+
+    await tryExec(
+      'ALTER TABLE projects ADD COLUMN covered_area_sft REAL NOT NULL DEFAULT 0',
+    );
+    await tryExec(
+      'ALTER TABLE projects ADD COLUMN rate_per_sft REAL NOT NULL DEFAULT 0',
+    );
+    await tryExec(
+      "ALTER TABLE projects ADD COLUMN construction_duration TEXT NOT NULL DEFAULT ''",
+    );
+
+    await tryExec('''
+      CREATE TABLE IF NOT EXISTS cost_construction_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        label TEXT NOT NULL,
+        value TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT ''
+      )
+    ''');
+
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM cost_construction_items'),
+        ) ??
+        0;
+    if (count == 0) {
+      const seeds = [
+        (
+          'Total covered Area of SF (as per working plan)',
+          '600 sft',
+        ),
+        (
+          'Covered Area Rate for Framed structure for SF',
+          '600 sft',
+        ),
+        (
+          'Cost of Construction /sft',
+          'Rs. 2200/-',
+        ),
+        (
+          'Total cost of construction',
+          'Rs. 13,20,000/-',
+        ),
+      ];
+      var i = 0;
+      for (final s in seeds) {
+        await db.insert('cost_construction_items', {
+          'label': s.$1,
+          'value': s.$2,
           'sort_order': i++,
           'created_at': '',
         });

@@ -123,6 +123,12 @@ class Project {
   final ProjectStatus status;
   final String? clientName;
   final String location;
+  /// Covered area used for Cost of Construction quotes (sq ft).
+  final double coveredAreaSft;
+  /// Construction rate per sq ft.
+  final double ratePerSft;
+  /// Duration / notes line for the cost section.
+  final String constructionDuration;
 
   const Project({
     this.id,
@@ -134,9 +140,14 @@ class Project {
     this.status = ProjectStatus.planning,
     this.clientName,
     this.location = '',
+    this.coveredAreaSft = 0,
+    this.ratePerSft = 0,
+    this.constructionDuration = '',
   });
 
   String get displayId => id == null ? 'PRJ-????' : 'PRJ-${id!.toString().padLeft(4, '0')}';
+
+  double get totalConstructionCost => coveredAreaSft * ratePerSft;
 
   Project copyWith({
     int? id,
@@ -148,6 +159,9 @@ class Project {
     ProjectStatus? status,
     String? clientName,
     String? location,
+    double? coveredAreaSft,
+    double? ratePerSft,
+    String? constructionDuration,
   }) {
     return Project(
       id: id ?? this.id,
@@ -159,6 +173,9 @@ class Project {
       status: status ?? this.status,
       clientName: clientName ?? this.clientName,
       location: location ?? this.location,
+      coveredAreaSft: coveredAreaSft ?? this.coveredAreaSft,
+      ratePerSft: ratePerSft ?? this.ratePerSft,
+      constructionDuration: constructionDuration ?? this.constructionDuration,
     );
   }
 
@@ -171,6 +188,9 @@ class Project {
         'progress': progress,
         'status': status.name,
         'location': location,
+        'covered_area_sft': coveredAreaSft,
+        'rate_per_sft': ratePerSft,
+        'construction_duration': constructionDuration,
       };
 
   factory Project.fromMap(Map<String, Object?> map) => Project(
@@ -183,6 +203,9 @@ class Project {
         status: ProjectStatus.fromString(map['status'] as String?),
         clientName: map['client_name'] as String?,
         location: map['location'] as String? ?? '',
+        coveredAreaSft: (map['covered_area_sft'] as num?)?.toDouble() ?? 0,
+        ratePerSft: (map['rate_per_sft'] as num?)?.toDouble() ?? 0,
+        constructionDuration: map['construction_duration'] as String? ?? '',
       );
 }
 
@@ -774,6 +797,79 @@ class Quotation {
         createdAt: map['created_at'] as String? ?? '',
         updatedAt: map['updated_at'] as String? ?? '',
       );
+}
+
+/// Admin-managed Cost of Construction line (key = label, value supports placeholders).
+/// Placeholders: `{area}`, `{rate}`, `{total}`, `{duration}`, `{project}`.
+class CostConstructionItem {
+  final int? id;
+  final String label;
+  final String value;
+  final int sortOrder;
+  final String createdAt;
+
+  const CostConstructionItem({
+    this.id,
+    required this.label,
+    this.value = '',
+    this.sortOrder = 0,
+    this.createdAt = '',
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'label': label,
+        'value': value,
+        'sort_order': sortOrder,
+        'created_at': createdAt,
+      };
+
+  factory CostConstructionItem.fromMap(Map<String, Object?> map) =>
+      CostConstructionItem(
+        id: map['id'] as int?,
+        label: map['label'] as String? ?? '',
+        value: map['value'] as String? ?? '',
+        sortOrder: map['sort_order'] as int? ?? 0,
+        createdAt: map['created_at'] as String? ?? '',
+      );
+
+  /// Resolves placeholders from project size / rate / duration.
+  String resolveValue({
+    required double areaSft,
+    required double ratePerSft,
+    required String duration,
+    String projectName = '',
+  }) {
+    final total = areaSft * ratePerSft;
+    final areaStr = areaSft == areaSft.roundToDouble()
+        ? areaSft.toStringAsFixed(0)
+        : areaSft.toStringAsFixed(2);
+    final rateStr = ratePerSft == ratePerSft.roundToDouble()
+        ? ratePerSft.toStringAsFixed(0)
+        : ratePerSft.toStringAsFixed(2);
+    final totalStr = _indianRs(total);
+    return value
+        .replaceAll('{area}', areaStr)
+        .replaceAll('{rate}', rateStr)
+        .replaceAll('{total}', totalStr)
+        .replaceAll('{duration}', duration.isEmpty ? '—' : duration)
+        .replaceAll('{project}', projectName.isEmpty ? '—' : projectName);
+  }
+
+  static String _indianRs(double amount) {
+    final n = amount.round();
+    final s = n.toString();
+    if (s.length <= 3) return s;
+    final last3 = s.substring(s.length - 3);
+    var rest = s.substring(0, s.length - 3);
+    final parts = <String>[];
+    while (rest.length > 2) {
+      parts.insert(0, rest.substring(rest.length - 2));
+      rest = rest.substring(0, rest.length - 2);
+    }
+    if (rest.isNotEmpty) parts.insert(0, rest);
+    return '${parts.join(',')},$last3';
+  }
 }
 
 class SitePhoto {
