@@ -3,12 +3,40 @@ import 'package:provider/provider.dart';
 
 import '../data/models/models.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/progress_ring.dart';
 
 class MaterialsScreen extends StatelessWidget {
   const MaterialsScreen({super.key});
+
+  Future<void> _confirmDelete(BuildContext context, MaterialItem m) async {
+    if (m.id == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete material?'),
+        content: Text(m.displayName),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      await context.read<AppProvider>().removeMaterial(m.id!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +70,7 @@ class MaterialsScreen extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Column(
@@ -69,7 +98,32 @@ class MaterialsScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        ProgressRing(value: usedPct, size: 64),
+                        Column(
+                          children: [
+                            ProgressRing(value: usedPct, size: 64),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Edit',
+                                  onPressed: () =>
+                                      _openForm(context, item: m),
+                                  icon: const Icon(Icons.edit_outlined),
+                                ),
+                                IconButton(
+                                  tooltip: 'Delete',
+                                  onPressed: () =>
+                                      _confirmDelete(context, m),
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: AppColors.danger,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),

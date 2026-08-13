@@ -8,6 +8,7 @@ import '../utils/formatters.dart';
 import '../widgets/date_field.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/form_actions.dart';
+import 'worker_history_screens.dart';
 
 class LabourScreen extends StatefulWidget {
   final int initialTab;
@@ -259,220 +260,21 @@ class _LabourScreenState extends State<LabourScreen>
   }
 
   Future<void> _openWorkerDetail(BuildContext context, Worker w) async {
-    final totalPaid = await context.read<AppProvider>().repo.getWorkerTotalPaid(
-      w.id!,
-    );
-    if (!context.mounted) return;
-    final currency = context.read<AppProvider>().settings.currency;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (ctx) => Scaffold(
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 180,
-                pinned: true,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.25),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 40),
-                        CircleAvatar(
-                          radius: 36,
-                          backgroundColor: AppColors.primaryBlue,
-                          child: Text(
-                            w.name.isNotEmpty ? w.name[0].toUpperCase() : '?',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          w.name,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(w.trade.isEmpty ? 'Worker' : w.trade),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Worker Information',
-                        style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                          color: AppColors.primaryBlue,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Card(
-                        child: Column(
-                          children: [
-                            ListTile(
-                              leading: const Icon(Icons.phone),
-                              title: Text('Mobile'),
-                              subtitle: Text(w.phone.isEmpty ? '—' : w.phone),
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.payments_outlined),
-                              title: Text('Daily Wage'),
-                              subtitle: Text(
-                                Formatters.money(
-                                  w.dailyWageDefault,
-                                  currency: currency,
-                                ),
-                              ),
-                            ),
-                            ListTile(
-                              leading: const Icon(
-                                Icons.account_balance_wallet_outlined,
-                              ),
-                              title: Text('Total Paid'),
-                              subtitle: Text(
-                                Formatters.money(totalPaid, currency: currency),
-                              ),
-                            ),
-                            ListTile(
-                              leading: const Icon(
-                                Icons.calendar_today_outlined,
-                              ),
-                              title: Text('Joining Date'),
-                              subtitle: Text(
-                                Formatters.dateDisplay(w.joiningDate),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Card(
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.payments_outlined),
-                          ),
-                          title: const Text('Payment History'),
-                          subtitle: const Text(
-                            'Record and view wage payments.',
-                          ),
-                          onTap: () => _recordPayment(ctx, w),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          _workerForm(context, worker: w);
-                        },
-                        child: const Text('Edit worker'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+        builder: (_) => WorkerDetailScreen(
+          worker: w,
+          onEdit: () async {
+            Navigator.pop(context);
+            await _workerForm(context, worker: w);
+          },
         ),
       ),
     );
   }
 
   Future<void> _recordPayment(BuildContext context, Worker w) async {
-    final app = context.read<AppProvider>();
-    final amount = TextEditingController(
-      text: w.dailyWageDefault.toStringAsFixed(0),
-    );
-    var date = Formatters.todayIso();
-    int? projectId;
-    final notes = TextEditingController();
-
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => AlertDialog(
-          title: const Text('Record Payment'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: amount,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Amount'),
-                ),
-                const SizedBox(height: 10),
-                DateField(
-                  label: 'Date',
-                  value: date,
-                  onChanged: (v) => setModal(() => date = v),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<int?>(
-                  // ignore: deprecated_member_use
-                  value: projectId,
-                  decoration: const InputDecoration(
-                    labelText: 'Project (optional)',
-                  ),
-                  items: [
-                    const DropdownMenuItem(
-                      value: null,
-                      child: Text('Not linked to a project'),
-                    ),
-                    ...app.projects.map(
-                      (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
-                    ),
-                  ],
-                  onChanged: (v) => setModal(() => projectId = v),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: notes,
-                  decoration: const InputDecoration(
-                    labelText: 'Notes (optional)',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                await app.saveWagePayment(
-                  WagePayment(
-                    workerId: w.id!,
-                    amount: double.tryParse(amount.text) ?? 0,
-                    date: date,
-                    note: notes.text.trim(),
-                    projectId: projectId,
-                  ),
-                );
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
+    await showRecordWagePaymentDialog(context, w);
   }
 }
 
@@ -480,6 +282,35 @@ class _WorkersTab extends StatelessWidget {
   final void Function(Worker) onOpen;
   final VoidCallback onAdd;
   const _WorkersTab({required this.onOpen, required this.onAdd});
+
+  Future<void> _confirmDelete(BuildContext context, Worker w) async {
+    if (w.id == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete worker?'),
+        content: Text(
+          'Delete ${w.name}? Attendance and wage payments for this worker will also be removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      await context.read<AppProvider>().removeWorker(w.id!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -516,6 +347,11 @@ class _WorkersTab extends StatelessWidget {
               '${w.displayId} · ${w.trade.isEmpty ? 'Worker' : w.trade}\n${Formatters.money(w.dailyWageDefault, currency: currency)}/day',
             ),
             isThreeLine: true,
+            trailing: IconButton(
+              tooltip: 'Delete worker',
+              onPressed: () => _confirmDelete(context, w),
+              icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+            ),
             onTap: () => onOpen(w),
           ),
         );
@@ -631,3 +467,4 @@ class _PayrollTab extends StatelessWidget {
     );
   }
 }
+

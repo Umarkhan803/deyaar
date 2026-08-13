@@ -33,10 +33,17 @@ class AppProvider extends ChangeNotifier {
   Future<void> init() async {
     loading = true;
     notifyListeners();
+    final started = DateTime.now();
     await repo.seedDemoIfNeeded();
     settings = await repo.getSettings();
     unlocked = !(await repo.hasPin);
     await refreshAll();
+    // Keep the branded splash visible long enough to read.
+    const minSplash = Duration(milliseconds: 1600);
+    final elapsed = DateTime.now().difference(started);
+    if (elapsed < minSplash) {
+      await Future<void>.delayed(minSplash - elapsed);
+    }
     loading = false;
     notifyListeners();
   }

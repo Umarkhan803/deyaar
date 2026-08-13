@@ -369,6 +369,8 @@ class AppRepository {
 
   Future<void> deleteWorker(int id) async {
     final db = await _db.database;
+    await db.delete('attendance', where: 'worker_id = ?', whereArgs: [id]);
+    await db.delete('wage_payments', where: 'worker_id = ?', whereArgs: [id]);
     await db.delete('worker_projects', where: 'worker_id = ?', whereArgs: [id]);
     await db.delete('workers', where: 'id = ?', whereArgs: [id]);
   }
