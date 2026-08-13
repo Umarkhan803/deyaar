@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/module_tile.dart';
 import 'admin_screen.dart';
+import 'finance_screen.dart';
 import 'labour_screen.dart';
 import 'materials_screen.dart';
 import 'payments_screen.dart';
@@ -40,6 +41,13 @@ class MoreScreen extends StatelessWidget {
         AppColors.navy,
       ),
       _MoreItem(
+        'Finance',
+        'Revenue, expenses and monthly chart',
+        Icons.account_balance_outlined,
+        const FinanceScreen(),
+        AppColors.success,
+      ),
+      _MoreItem(
         'Payments',
         'Money received and pending',
         Icons.account_balance_wallet_outlined,
@@ -48,7 +56,7 @@ class MoreScreen extends StatelessWidget {
       ),
       _MoreItem(
         'Reports',
-        'Usage, labour and quotation PDFs',
+        'Usage, labour, quotation and bill PDFs',
         Icons.assessment_outlined,
         const ReportsScreen(),
         AppColors.success,
@@ -94,7 +102,7 @@ class MoreScreen extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Admin, labour, materials, reports and settings',
+          'Finance, admin, labour, materials, reports and settings',
           style: TextStyle(color: AppColors.textMuted(context)),
         ),
         const SizedBox(height: 20),

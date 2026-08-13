@@ -764,6 +764,85 @@ class AppRepository {
     await db.delete('cost_construction_items', where: 'id = ?', whereArgs: [id]);
   }
 
+  // ---------- Bills (work summary) ----------
+  Future<List<Bill>> getBills() async {
+    final db = await _db.database;
+    final rows = await db.query('bills', orderBy: 'updated_at DESC, id DESC');
+    final bills = <Bill>[];
+    for (final row in rows) {
+      final id = row['id'] as int;
+      final items = await getBillItems(id);
+      bills.add(Bill.fromMap(row, items: items));
+    }
+    return bills;
+  }
+
+  Future<Bill?> getBill(int id) async {
+    final db = await _db.database;
+    final rows = await db.query('bills', where: 'id = ?', whereArgs: [id]);
+    if (rows.isEmpty) return null;
+    final items = await getBillItems(id);
+    return Bill.fromMap(rows.first, items: items);
+  }
+
+  Future<List<BillItem>> getBillItems(int billId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'bill_items',
+      where: 'bill_id = ?',
+      whereArgs: [billId],
+      orderBy: 'sort_order ASC, id ASC',
+    );
+    return rows.map(BillItem.fromMap).toList();
+  }
+
+  Future<int> upsertBill(Bill bill) async {
+    final db = await _db.database;
+    final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+    late final int billId;
+    await db.transaction((txn) async {
+      if (bill.id == null) {
+        billId = await txn.insert('bills', {
+          'name': bill.name,
+          'note': bill.note,
+          'created_at': now,
+          'updated_at': now,
+        });
+      } else {
+        billId = bill.id!;
+        await txn.update(
+          'bills',
+          {
+            'name': bill.name,
+            'note': bill.note,
+            'updated_at': now,
+          },
+          where: 'id = ?',
+          whereArgs: [billId],
+        );
+        await txn.delete('bill_items', where: 'bill_id = ?', whereArgs: [billId]);
+      }
+      for (var i = 0; i < bill.items.length; i++) {
+        final item = bill.items[i];
+        await txn.insert('bill_items', {
+          'bill_id': billId,
+          'description': item.description,
+          'unit': item.unit,
+          'qty': item.qty,
+          'rate': item.rate,
+          'sort_order': i,
+        });
+      }
+    });
+    return billId;
+  }
+
+  Future<void> deleteBill(int id) async {
+    final db = await _db.database;
+    await db.delete('bill_items', where: 'bill_id = ?', whereArgs: [id]);
+    await db.delete('bills', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<DashboardStats> getDashboardStats() async {
     final db = await _db.database;
     final projects = await db.rawQuery('''
@@ -826,6 +905,8 @@ class AppRepository {
   Future<void> eraseAllData() async {
     final db = await _db.database;
     final tables = [
+      'bill_items',
+      'bills',
       'site_photos',
       'payments',
       'expenses',

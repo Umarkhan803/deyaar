@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class QuickActionTile extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final Widget? iconWidget;
   final String label;
   final VoidCallback onTap;
 
   const QuickActionTile({
     super.key,
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.label,
     required this.onTap,
-  });
+  }) : assert(icon != null || iconWidget != null);
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,9 @@ class QuickActionTile extends StatelessWidget {
                 color: AppColors.primaryBlue,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: Colors.white, size: 26),
+              alignment: Alignment.center,
+              child: iconWidget ??
+                  Icon(icon, color: Colors.white, size: 26),
             ),
             const SizedBox(height: 8),
             Text(

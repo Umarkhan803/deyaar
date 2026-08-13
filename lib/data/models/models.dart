@@ -799,6 +799,123 @@ class Quotation {
       );
 }
 
+class BillItem {
+  final int? id;
+  final int? billId;
+  final String description;
+  final String unit;
+  final double qty;
+  final double rate;
+  final int sortOrder;
+
+  const BillItem({
+    this.id,
+    this.billId,
+    this.description = '',
+    this.unit = '',
+    this.qty = 0,
+    this.rate = 0,
+    this.sortOrder = 0,
+  });
+
+  double get amount => qty * rate;
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'bill_id': billId,
+        'description': description,
+        'unit': unit,
+        'qty': qty,
+        'rate': rate,
+        'sort_order': sortOrder,
+      };
+
+  factory BillItem.fromMap(Map<String, Object?> map) => BillItem(
+        id: map['id'] as int?,
+        billId: map['bill_id'] as int?,
+        description: map['description'] as String? ?? '',
+        unit: map['unit'] as String? ?? '',
+        qty: (map['qty'] as num?)?.toDouble() ?? 0,
+        rate: (map['rate'] as num?)?.toDouble() ?? 0,
+        sortOrder: map['sort_order'] as int? ?? 0,
+      );
+
+  BillItem copyWith({
+    int? id,
+    int? billId,
+    String? description,
+    String? unit,
+    double? qty,
+    double? rate,
+    int? sortOrder,
+  }) =>
+      BillItem(
+        id: id ?? this.id,
+        billId: billId ?? this.billId,
+        description: description ?? this.description,
+        unit: unit ?? this.unit,
+        qty: qty ?? this.qty,
+        rate: rate ?? this.rate,
+        sortOrder: sortOrder ?? this.sortOrder,
+      );
+}
+
+class Bill {
+  final int? id;
+  final String name;
+  final String note;
+  final String createdAt;
+  final String updatedAt;
+  final List<BillItem> items;
+
+  const Bill({
+    this.id,
+    required this.name,
+    this.note = '',
+    this.createdAt = '',
+    this.updatedAt = '',
+    this.items = const [],
+  });
+
+  double get totalAmount =>
+      items.fold<double>(0, (sum, item) => sum + item.amount);
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'name': name,
+        'note': note,
+        'created_at': createdAt,
+        'updated_at': updatedAt,
+      };
+
+  factory Bill.fromMap(Map<String, Object?> map, {List<BillItem> items = const []}) =>
+      Bill(
+        id: map['id'] as int?,
+        name: map['name'] as String? ?? '',
+        note: map['note'] as String? ?? '',
+        createdAt: map['created_at'] as String? ?? '',
+        updatedAt: map['updated_at'] as String? ?? '',
+        items: items,
+      );
+
+  Bill copyWith({
+    int? id,
+    String? name,
+    String? note,
+    String? createdAt,
+    String? updatedAt,
+    List<BillItem>? items,
+  }) =>
+      Bill(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        note: note ?? this.note,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        items: items ?? this.items,
+      );
+}
+
 /// Admin-managed Cost of Construction line (key = label, value supports placeholders).
 /// Placeholders: `{area}`, `{rate}`, `{total}`, `{duration}`, `{project}`.
 class CostConstructionItem {

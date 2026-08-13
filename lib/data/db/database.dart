@@ -17,7 +17,7 @@ class AppDatabase {
     final path = join(dbPath, 'deyaar_constructions.db');
     return openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: (db, version) async {
         await _createV1(db);
         await _upgradeToV2(db);
@@ -25,6 +25,7 @@ class AppDatabase {
         await _upgradeToV4(db);
         await _upgradeToV5(db);
         await _upgradeToV6(db);
+        await _upgradeToV7(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) await _upgradeToV2(db);
@@ -32,6 +33,7 @@ class AppDatabase {
         if (oldVersion < 4) await _upgradeToV4(db);
         if (oldVersion < 5) await _upgradeToV5(db);
         if (oldVersion < 6) await _upgradeToV6(db);
+        if (oldVersion < 7) await _upgradeToV7(db);
       },
     );
   }
@@ -348,6 +350,36 @@ class AppDatabase {
         });
       }
     }
+  }
+
+  Future<void> _upgradeToV7(Database db) async {
+    Future<void> tryExec(String sql) async {
+      try {
+        await db.execute(sql);
+      } catch (_) {}
+    }
+
+    await tryExec('''
+      CREATE TABLE IF NOT EXISTS bills (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL DEFAULT ''
+      )
+    ''');
+    await tryExec('''
+      CREATE TABLE IF NOT EXISTS bill_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bill_id INTEGER NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        unit TEXT NOT NULL DEFAULT '',
+        qty REAL NOT NULL DEFAULT 0,
+        rate REAL NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   Future<void> close() async {

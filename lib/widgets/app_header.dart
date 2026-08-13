@@ -40,7 +40,7 @@ class AppHeader extends StatelessWidget {
                     const Icon(Icons.apartment, color: AppColors.primaryBlue),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,10 +49,12 @@ class AppHeader extends StatelessWidget {
                     title ?? 'Deyaar Constructions',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     'Building Your Vision',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(

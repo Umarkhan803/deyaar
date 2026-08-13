@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/pdf_report_service.dart';
 import '../theme/app_theme.dart';
+import 'bills_screen.dart';
 import 'quotation_screen.dart';
 
 enum ReportKind {
@@ -88,6 +89,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const QuotationReportScreen(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Card(
+            child: ListTile(
+              leading: const Icon(
+                Icons.receipt_long_outlined,
+                color: AppColors.primaryBlue,
+              ),
+              title: const Text(
+                'Bills',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: const Text(
+                'Work summary bills and PDF export',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const BillsScreen(),
                 ),
               ),
             ),

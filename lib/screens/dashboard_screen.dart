@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/models/models.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_header.dart';
+import '../widgets/quick_action_tile.dart';
+import 'clients_screen.dart';
+import 'expenses_screen.dart';
+import 'labour_screen.dart';
 import 'projects_screen.dart';
 import 'settings_screen.dart';
-import 'site_overview_screen.dart';
+import 'site_photos_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -19,15 +24,38 @@ class DashboardScreen extends StatelessWidget {
     return 'Good evening,';
   }
 
+  List<Project> _upcomingDeadlines(List<Project> projects) {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+    final withDates = projects.where((p) {
+      if (p.expectedEnd.isEmpty) return false;
+      if (p.status == ProjectStatus.completed) return false;
+      final d = DateTime.tryParse(p.expectedEnd);
+      return d != null;
+    }).toList();
+    withDates.sort((a, b) {
+      final da = DateTime.parse(a.expectedEnd);
+      final db = DateTime.parse(b.expectedEnd);
+      return da.compareTo(db);
+    });
+    return withDates.where((p) {
+      final d = DateTime.parse(p.expectedEnd);
+      final end = DateTime(d.year, d.month, d.day);
+      // Show overdue and upcoming (next 120 days).
+      return !end.isAfter(start.add(const Duration(days: 120)));
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
     final s = app.stats;
     final currency = app.settings.currency;
-    final net = s.profitLoss;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E252E) : AppColors.surface;
     final pendingBg = const Color(0xFFE53935);
+    final deadlines = _upcomingDeadlines(app.projects);
+    final recentExpenses = app.expenses.take(5).toList();
 
     return RefreshIndicator(
       color: AppColors.primaryBlue,
@@ -41,17 +69,17 @@ class DashboardScreen extends StatelessWidget {
                 builder: (_) => const ProjectsScreen(focusSearch: true),
               ),
             ),
-            onSettings: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            onSettings: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
           ),
           const SizedBox(height: 28),
           Text(
             _greeting(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white70 : AppColors.slate,
-            ),
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : AppColors.slate,
+                ),
           ),
           const SizedBox(height: 14),
           Row(
@@ -69,8 +97,8 @@ class DashboardScreen extends StatelessWidget {
                 child: Text(
                   'Dashboard Overview',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                        fontWeight: FontWeight.w800,
+                      ),
                 ),
               ),
               Material(
@@ -80,13 +108,17 @@ class DashboardScreen extends StatelessWidget {
                   customBorder: const CircleBorder(),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const LabourOverviewScreen(),
+                      builder: (_) => const SitePhotosScreen(),
                     ),
                   ),
                   child: const SizedBox(
                     width: 44,
                     height: 44,
-                    child: Icon(Icons.groups_rounded, color: Colors.white),
+                    child: Icon(
+                      Icons.apartment_outlined,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
                 ),
               ),
@@ -142,66 +174,309 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 28),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(18, 20, 18, 22),
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(20),
-              border: isDark ? null : Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Text(
+            'Quick Actions',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
               children: [
-                Text(
-                  'Financial Summary',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+                QuickActionTile(
+                  icon: Icons.add,
+                  label: 'Project',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ProjectsScreen(openAdd: true),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FinanceColumn(
-                        icon: Icons.arrow_upward_rounded,
-                        value: Formatters.money(
-                          s.totalReceived,
-                          currency: currency,
-                        ),
-                        label: 'Revenue',
-                      ),
+                const SizedBox(width: 10),
+                QuickActionTile(
+                  icon: Icons.person_add_alt_1_outlined,
+                  label: 'Client',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ClientsScreen(openAdd: true),
                     ),
-                    Expanded(
-                      child: _FinanceColumn(
-                        icon: Icons.arrow_downward_rounded,
-                        value: Formatters.money(
-                          s.totalExpenses,
-                          currency: currency,
-                        ),
-                        label: 'Expenses',
-                      ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                QuickActionTile(
+                  icon: Icons.receipt_long_outlined,
+                  label: 'Expense',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ExpensesScreen(openAdd: true),
                     ),
-                    Expanded(
-                      child: _FinanceColumn(
-                        icon: Icons.savings_outlined,
-                        value: net >= 0
-                            ? Formatters.money(net, currency: currency)
-                            : '-${Formatters.money(net.abs(), currency: currency)}',
-                        label: net >= 0 ? 'Net Profit' : 'Net Loss',
-                        valueColor: net >= 0
-                            ? AppColors.success
-                            : const Color(0xFFFF8A80),
-                      ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                QuickActionTile(
+                  icon: Icons.engineering_outlined,
+                  label: 'Labours',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const LabourScreen(openAdd: true),
                     ),
-                  ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                QuickActionTile(
+                  label: 'Site',
+                  icon: Icons.apartment_outlined,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SitePhotosScreen(),
+                    ),
+                  ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              Text(
+                'Upcoming Deadlines',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => _addDeadline(context),
+                child: const Text('Add'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (deadlines.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(20),
+                border: isDark ? null : Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 36,
+                    color: AppColors.textMuted(context),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'No upcoming deadlines. All caught up!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textMuted(context)),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...deadlines.map((p) {
+              final end = DateTime.parse(p.expectedEnd);
+              final today = DateTime.now();
+              final days = DateTime(end.year, end.month, end.day)
+                  .difference(DateTime(today.year, today.month, today.day))
+                  .inDays;
+              final overdue = days < 0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor: overdue
+                          ? AppColors.dangerSoft
+                          : AppColors.primaryBlue.withValues(alpha: 0.15),
+                      child: Icon(
+                        Icons.event_outlined,
+                        color: overdue
+                            ? AppColors.danger
+                            : AppColors.primaryBlue,
+                      ),
+                    ),
+                    title: Text(
+                      p.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      overdue
+                          ? 'Overdue · ${Formatters.dateDisplay(p.expectedEnd)}'
+                          : days == 0
+                              ? 'Due today · ${Formatters.dateDisplay(p.expectedEnd)}'
+                              : 'Due in $days days · ${Formatters.dateDisplay(p.expectedEnd)}',
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Remove deadline',
+                      icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                      onPressed: () => _deleteDeadline(context, p),
+                    ),
+                    onTap: () => openProjectEditor(context, project: p),
+                  ),
+                ),
+              );
+            }),
+          const SizedBox(height: 24),
+          Text(
+            'Recent Expenses',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 10),
+          if (recentExpenses.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: isDark ? null : Border.all(color: AppColors.border),
+              ),
+              child: Text(
+                'No expenses yet.',
+                style: TextStyle(color: AppColors.textMuted(context)),
+              ),
+            )
+          else
+            ...recentExpenses.map(
+              (e) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          AppColors.primaryBlue.withValues(alpha: 0.15),
+                      child: const Icon(
+                        Icons.receipt_long_outlined,
+                        color: AppColors.primaryBlue,
+                      ),
+                    ),
+                    title: Text(
+                      e.category.label,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      e.projectName ?? Formatters.dateDisplay(e.date),
+                    ),
+                    trailing: Text(
+                      Formatters.money(e.amount, currency: currency),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFFF8A65),
+                      ),
+                    ),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ExpensesScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteDeadline(BuildContext context, Project project) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove deadline?'),
+        content: Text(
+          'Clear the expected end date for "${project.name}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.danger),
             ),
           ),
         ],
       ),
     );
+    if (ok != true || !context.mounted) return;
+    await context.read<AppProvider>().saveProject(
+          project.copyWith(expectedEnd: ''),
+        );
+  }
+
+  Future<void> _addDeadline(BuildContext context) async {
+    final app = context.read<AppProvider>();
+    final candidates = app.projects
+        .where(
+          (p) =>
+              p.status != ProjectStatus.completed &&
+              (p.expectedEnd.isEmpty || DateTime.tryParse(p.expectedEnd) == null),
+        )
+        .toList();
+    if (candidates.isEmpty) {
+      // Fall back to any non-completed project so user can update the date.
+      final open = app.projects
+          .where((p) => p.status != ProjectStatus.completed)
+          .toList();
+      if (open.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Create a project first')),
+        );
+        return;
+      }
+      await openProjectEditor(context, project: open.first);
+      return;
+    }
+    final selected = await showModalBottomSheet<Project>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Text(
+                'Choose a project',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+            ),
+            ...candidates.map(
+              (p) => ListTile(
+                title: Text(p.name),
+                subtitle: Text(p.location.isEmpty ? p.displayId : p.location),
+                onTap: () => Navigator.pop(ctx, p),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null && context.mounted) {
+      await openProjectEditor(context, project: selected);
+    }
   }
 }
 
@@ -281,67 +556,25 @@ class _OverviewCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: valueColor,
-                ),
+                      fontWeight: FontWeight.w800,
+                      color: valueColor,
+                    ),
               ),
               const SizedBox(height: 2),
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color:
-                      labelColor ??
-                      (Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white70
-                          : AppColors.slate),
-                  fontWeight: FontWeight.w500,
-                ),
+                      color: labelColor ??
+                          (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white70
+                              : AppColors.slate),
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _FinanceColumn extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color? valueColor;
-
-  const _FinanceColumn({
-    required this.icon,
-    required this.value,
-    required this.label,
-    this.valueColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = Theme.of(context).brightness == Brightness.dark
-        ? Colors.white70
-        : AppColors.slate;
-    return Column(
-      children: [
-        Icon(icon, size: 18, color: muted),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: valueColor,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
-        ),
-      ],
     );
   }
 }

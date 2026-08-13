@@ -328,6 +328,219 @@ class PdfReportService {
     return doc.save();
   }
 
+  String _fmtNum(double value) {
+    if (value == value.roundToDouble()) {
+      return NumberFormat('#,##0').format(value);
+    }
+    return NumberFormat('#,##0.##').format(value);
+  }
+
+  Future<Uint8List> buildBillReportBytes({
+    required String companyName,
+    required String currency,
+    required Bill bill,
+  }) async {
+    final doc = pw.Document();
+    pw.ImageProvider? logo;
+    pw.ImageProvider? watermark;
+    try {
+      logo = await imageFromAssetBundle('assets/brand/logo.png');
+    } catch (_) {
+      logo = null;
+    }
+    try {
+      watermark = await imageFromAssetBundle('assets/brand/logo.jpeg');
+    } catch (_) {
+      watermark = logo;
+    }
+
+    final generatedAt = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
+    final money = NumberFormat.currency(symbol: _symbol(currency), decimalDigits: 0);
+    final moneyDec =
+        NumberFormat.currency(symbol: _symbol(currency), decimalDigits: 2);
+
+    String moneyFmt(double v) =>
+        v == v.roundToDouble() ? money.format(v) : moneyDec.format(v);
+
+    late final pw.Font baseFont;
+    late final pw.Font boldFont;
+    late final pw.Font italicFont;
+    late final pw.Font boldItalicFont;
+    try {
+      baseFont = await PdfGoogleFonts.sourceSerif4Regular();
+      boldFont = await PdfGoogleFonts.sourceSerif4Bold();
+      italicFont = await PdfGoogleFonts.sourceSerif4Italic();
+      boldItalicFont = await PdfGoogleFonts.sourceSerif4BoldItalic();
+    } catch (_) {
+      baseFont = pw.Font.times();
+      boldFont = pw.Font.timesBold();
+      italicFont = pw.Font.timesItalic();
+      boldItalicFont = pw.Font.timesBoldItalic();
+    }
+
+    const headerBg = PdfColor.fromInt(0xFFE8F5E9);
+    const gridColor = PdfColor.fromInt(0xFFCCCCCC);
+
+    pw.Widget cell(
+      String text, {
+      pw.FontWeight? weight,
+      pw.Alignment align = pw.Alignment.centerLeft,
+      int flex = 1,
+      bool header = false,
+    }) {
+      return pw.Expanded(
+        flex: flex,
+        child: pw.Container(
+          alignment: align,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: gridColor, width: 0.5),
+            color: header ? headerBg : null,
+          ),
+          child: pw.Text(
+            text,
+            style: pw.TextStyle(
+              fontSize: header ? 10 : 9.5,
+              fontWeight: weight ??
+                  (header ? pw.FontWeight.bold : pw.FontWeight.normal),
+            ),
+          ),
+        ),
+      );
+    }
+
+    pw.Widget headerRow() {
+      return pw.Row(
+        children: [
+          cell('SI', align: pw.Alignment.center, flex: 1, header: true),
+          cell('Description', flex: 5, header: true),
+          cell('Unit', align: pw.Alignment.center, flex: 2, header: true),
+          cell('Qty', align: pw.Alignment.center, flex: 2, header: true),
+          cell('Rate (${_symbol(currency).trim()})',
+              align: pw.Alignment.centerRight, flex: 2, header: true),
+          cell('Amount (${_symbol(currency).trim()})',
+              align: pw.Alignment.centerRight, flex: 3, header: true),
+        ],
+      );
+    }
+
+    pw.Widget dataRow(int si, BillItem item) {
+      return pw.Row(
+        children: [
+          cell('$si', align: pw.Alignment.center, flex: 1),
+          cell(item.description, flex: 5),
+          cell(item.unit, align: pw.Alignment.center, flex: 2),
+          cell(_fmtNum(item.qty), align: pw.Alignment.center, flex: 2),
+          cell(moneyFmt(item.rate), align: pw.Alignment.centerRight, flex: 2),
+          cell(moneyFmt(item.amount),
+              align: pw.Alignment.centerRight, flex: 3),
+        ],
+      );
+    }
+
+    doc.addPage(
+      pw.MultiPage(
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.fromLTRB(36, 44, 36, 40),
+          theme: pw.ThemeData.withFont(
+            base: baseFont,
+            bold: boldFont,
+            italic: italicFont,
+            boldItalic: boldItalicFont,
+          ),
+          buildBackground: (context) {
+            final wm = watermark;
+            if (wm == null) return pw.SizedBox();
+            return pw.FullPage(
+              ignoreMargins: true,
+              child: pw.Center(
+                child: pw.Opacity(
+                  opacity: 0.14,
+                  child: pw.Image(
+                    wm,
+                    width: 360,
+                    fit: pw.BoxFit.contain,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        build: (context) => [
+          _brandHeader(
+            companyName: companyName,
+            reportLabel: 'Bill Report',
+            generatedAt: generatedAt,
+            logo: logo,
+          ),
+          pw.SizedBox(height: 14),
+          pw.Divider(color: PdfColors.grey400, thickness: 0.9),
+          pw.SizedBox(height: 12),
+          pw.Text(
+            bill.name,
+            style: pw.TextStyle(
+              color: _navy,
+              fontSize: 18,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 16),
+          pw.Text(
+            'Work Summary',
+            style: pw.TextStyle(
+              fontSize: 14,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          headerRow(),
+          if (bill.items.isEmpty)
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: gridColor, width: 0.5),
+              ),
+              child: pw.Text(
+                'No line items.',
+                style: const pw.TextStyle(color: _muted, fontSize: 10),
+              ),
+            )
+          else
+            ...bill.items.asMap().entries.map(
+                  (e) => dataRow(e.key + 1, e.value),
+                ),
+          pw.SizedBox(height: 8),
+          pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text(
+              'Total: ${moneyFmt(bill.totalAmount)}',
+              style: pw.TextStyle(
+                fontSize: 12,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+          ),
+          if (bill.note.trim().isNotEmpty) ...[
+            pw.SizedBox(height: 18),
+            pw.Text(
+              bill.note.trim(),
+              style: pw.TextStyle(
+                fontSize: 11.5,
+                fontWeight: pw.FontWeight.bold,
+                fontStyle: pw.FontStyle.italic,
+                lineSpacing: 1.35,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return doc.save();
+  }
+
   pw.Widget _stat(String label, String value) {
     return pw.SizedBox(
       width: 200,
