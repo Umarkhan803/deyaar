@@ -484,6 +484,56 @@ class AppRepository {
     await db.delete('wage_payments', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> addWagePaymentPhoto(WagePaymentPhoto photo) async {
+    final db = await _db.database;
+    final map = photo.toMap()..remove('id');
+    return db.insert('wage_payment_photos', map);
+  }
+
+  Future<int> upsertWagePaymentPhoto(WagePaymentPhoto photo) async {
+    final db = await _db.database;
+    final map = photo.toMap();
+    if (photo.id == null) {
+      return db.insert('wage_payment_photos', map);
+    } else {
+      await db.update(
+        'wage_payment_photos',
+        map,
+        where: 'id = ?',
+        whereArgs: [photo.id],
+      );
+      return photo.id!;
+    }
+  }
+
+  Future<void> deleteWagePaymentPhoto(int id) async {
+    final db = await _db.database;
+    await db.delete('wage_payment_photos', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<WagePaymentPhoto>> getWagePaymentPhotos(int wagePaymentId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      'wage_payment_photos',
+      where: 'wage_payment_id = ?',
+      whereArgs: [wagePaymentId],
+      orderBy: 'takenAt DESC',
+    );
+    return rows.map(WagePaymentPhoto.fromMap).toList();
+  }
+
+  Future<List<WagePaymentPhoto>> getWagePaymentPhotosForWorker(int workerId) async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT wpp.*
+      FROM wage_payment_photos wpp
+      JOIN wage_payments wp ON wpp.wage_payment_id = wp.id
+      WHERE wp.workerId = ?
+      ORDER BY wpp.takenAt DESC
+    ''', [workerId]);
+    return rows.map(WagePaymentPhoto.fromMap).toList();
+  }
+
   Future<List<Supplier>> getSuppliers() async {
     final db = await _db.database;
     final rows = await db.query('suppliers', orderBy: 'name COLLATE NOCASE');
@@ -1050,6 +1100,7 @@ class AppRepository {
       dailyWageDefault: 180,
       experience: '5 years',
       joiningDate: '2026-01-01',
+      wageType: WageType.daily,
     ));
     await upsertWorker(Worker(
       name: 'Ahmed Hassan',
@@ -1058,6 +1109,7 @@ class AppRepository {
       dailyWageDefault: 200,
       experience: '8 years',
       joiningDate: '2026-01-01',
+      wageType: WageType.daily,
     ));
 
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -1148,5 +1200,40 @@ class AppRepository {
     ));
 
     await _setSetting('demo_seeded', '1');
+  }
+
+  // Client Payment Methods
+  Future<List<ClientPayment>> getClientPayments({int? clientId}) async {
+    final db = await _db.database;
+    final rows = await db.rawQuery('''
+      SELECT cp.*, c.name AS client_name
+      FROM client_payments cp
+      LEFT JOIN clients c ON c.id = cp.client_id
+      ${clientId != null ? 'WHERE cp.client_id = $clientId' : ''}
+      ORDER BY cp.date DESC
+    ''');
+    return rows.map(ClientPayment.fromMap).toList();
+  }
+
+  Future<double> getClientTotalPaid(int clientId) async {
+    final db = await _db.database;
+    final rows = await db.rawQuery(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM client_payments WHERE client_id = ?',
+      [clientId],
+    );
+    return (rows.first['total'] as num?)?.toDouble() ?? 0;
+  }
+
+  Future<int> upsertClientPayment(ClientPayment payment) async {
+    final db = await _db.database;
+    final map = payment.toMap()..remove('id');
+    if (payment.id == null) return db.insert('client_payments', map);
+    await db.update('client_payments', map, where: 'id = ?', whereArgs: [payment.id]);
+    return payment.id!;
+  }
+
+  Future<void> deleteClientPayment(int id) async {
+    final db = await _db.database;
+    await db.delete('client_payments', where: 'id = ?', whereArgs: [id]);
   }
 }

@@ -307,7 +307,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currency = context.watch<AppProvider>.settings.currency;
+    final currency = context.watch<AppProvider>().settings.currency;
 
     return Scaffold(
       body: CustomScrollView(
@@ -688,7 +688,6 @@ class _WorkerPaymentHistoryScreenState
                           ),
                         ],
                       ),
-                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -737,7 +736,7 @@ class _WorkerPaymentHistoryScreenState
                                           Text(
                                             Formatters.money(
                                               w.contractAmount -
-                                              total, // Use the total variable we calculated above
+                                                  total, // Use the total variable we calculated above
                                               currency: currency,
                                             ),
                                             style: const TextStyle(
@@ -753,8 +752,8 @@ class _WorkerPaymentHistoryScreenState
                               : const SizedBox.shrink(),
                         ],
                       ),
-                    ),
                   ),
+                ),
                 const SizedBox(height: 20),
                 Text(
                   'Payment Timeline',
@@ -802,30 +801,33 @@ class _WorkerPaymentHistoryScreenState
                                 ],
                               ),
                               trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    Formatters.money(p.amount, currency: currency),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.primaryBlue,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      Formatters.money(p.amount, currency: currency),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.primaryBlue,
+                                      ),
                                     ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Delete',
-                                    onPressed: () => _delete(p),
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      color: AppColors.warning,
+                                    IconButton(
+                                      tooltip: 'Delete',
+                                      onPressed: () => _delete(p),
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: AppColors.warning,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
                             )
                           )
                         ).toList(),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -910,7 +912,7 @@ class _WorkerAttendanceHistoryScreenState
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Row(
-                                mainAxisAlignment: MainAxisSpaceBetween,
+                                mainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Wage: ${Formatters.money(attendance.wage, currency: context.read<AppProvider>().settings.currency)}',
@@ -1026,7 +1028,7 @@ class _WorkerTransactionPhotosScreenState
             ),
           ),
         ],
-      );
+      ),
     );
     if (ok == true && mounted) {
       // Photo was updated in the save action above
@@ -1141,4 +1143,4 @@ class _WorkerTransactionPhotosScreenState
                 ),
           );
   }
-};
+}

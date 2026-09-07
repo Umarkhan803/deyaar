@@ -167,6 +167,16 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<int> addWagePaymentPhoto(WagePaymentPhoto photo) async {
+    final int id = await repo.addWagePaymentPhoto(photo);
+    notifyListeners();
+    return id;
+  }
+
+  Future<List<WagePaymentPhoto>> getWagePaymentPhotosForWorker(int workerId) async {
+    return await repo.getWagePaymentPhotosForWorker(workerId);
+  }
+
   Future<void> saveMaterial(MaterialItem m) async {
     await repo.upsertMaterial(m);
     materials = await repo.getMaterials();

@@ -1,0 +1,33 @@
+*** Begin Patch
+*** Update File: D:\Umar khan\reactnative\deyaar\lib\screens\clients_screen.dart
+@@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../data/models/models.dart';
+import '../providers/app_provider.dart';
+import '../utils/formatters.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/form_actions.dart';
++import 'client_view_screen.dart';
+ class ClientsScreen extends StatefulWidget {
+   final bool openAdd;
+   const ClientsScreen({super.key, this.openAdd = false});
+
+   @override
+   State<ClientsScreen> createState() => _ClientsScreenState();
+ }
+@@
+                     subtitle: Text(
+                       [
+                         if (c.phone.isNotEmpty) c.phone,
+                         if (c.location.isNotEmpty) c.location,
+                         Formatters.money(c.contractValue, currency: currency),
+                       ].join(' · '),
+                     ),
+                     trailing: const Icon(Icons.chevron_right),
+-                    onTap: () => _openForm(context, client: c),
++                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ClientViewScreen(clientId: c.id!))),
+                   ),
+                 );
+*** End Patch

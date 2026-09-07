@@ -26,6 +26,20 @@ enum AppThemePreference {
   }
 }
 
+enum WageType {
+  daily,
+  contract;
+
+  String get label {
+    switch (this) {
+      case WageType.daily:
+        return 'Daily Wages';
+      case WageType.contract:
+        return 'Contract Base';
+    }
+  }
+}
+
 class Client {
   final int? id;
   final String name;
@@ -296,6 +310,8 @@ class Worker {
   final String address;
   final String notes;
   final String joiningDate;
+  final double contractAmount;
+  final WageType wageType;
   /// Assigned project ids (runtime / form; not a DB column on workers).
   final List<int> assignedProjectIds;
 
@@ -309,6 +325,8 @@ class Worker {
     this.address = '',
     this.notes = '',
     this.joiningDate = '',
+    this.contractAmount = 0,
+    this.wageType = WageType.daily,
     this.assignedProjectIds = const [],
   });
 
@@ -328,6 +346,8 @@ class Worker {
     String? address,
     String? notes,
     String? joiningDate,
+    double? contractAmount,
+    WageType? wageType,
     List<int>? assignedProjectIds,
   }) {
     return Worker(
@@ -340,6 +360,8 @@ class Worker {
       address: address ?? this.address,
       notes: notes ?? this.notes,
       joiningDate: joiningDate ?? this.joiningDate,
+      contractAmount: contractAmount ?? this.contractAmount,
+      wageType: wageType ?? this.wageType,
       assignedProjectIds: assignedProjectIds ?? this.assignedProjectIds,
     );
   }
@@ -354,6 +376,8 @@ class Worker {
         'address': address,
         'notes': notes,
         'joining_date': joiningDate,
+        'contract_amount': contractAmount,
+        'wage_type': wageType.name,
       };
 
   factory Worker.fromMap(Map<String, Object?> map) => Worker(
@@ -366,6 +390,10 @@ class Worker {
         address: map['address'] as String? ?? '',
         notes: map['notes'] as String? ?? '',
         joiningDate: map['joining_date'] as String? ?? '',
+        contractAmount: (map['contract_amount'] as num?)?.toDouble() ?? 0,
+        wageType: (map['wage_type'] as String?) == 'contract'
+            ? WageType.contract
+            : WageType.daily,
       );
 }
 
@@ -509,6 +537,89 @@ class WagePayment {
         projectId: map['project_id'] as int?,
         workerName: map['worker_name'] as String?,
         projectName: map['project_name'] as String?,
+      );
+}
+
+class WagePaymentPhoto {
+  final int? id;
+  final int wagePaymentId;
+  final String path;
+  final String caption;
+  final String takenAt;
+
+  const WagePaymentPhoto({
+    this.id,
+    required this.wagePaymentId,
+    required this.path,
+    this.caption = '',
+    required this.takenAt,
+  });
+
+  WagePaymentPhoto copyWith({
+    int? id,
+    int? wagePaymentId,
+    String? path,
+    String? caption,
+    String? takenAt,
+  }) {
+    return WagePaymentPhoto(
+      id: id ?? this.id,
+      wagePaymentId: wagePaymentId ?? this.wagePaymentId,
+      path: path ?? this.path,
+      caption: caption ?? this.caption,
+      takenAt: takenAt ?? this.takenAt,
+    );
+  }
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'wage_payment_id': wagePaymentId,
+        'path': path,
+        'caption': caption,
+        'taken_at': takenAt,
+      };
+
+  factory WagePaymentPhoto.fromMap(Map<String, Object?> map) => WagePaymentPhoto(
+        id: map['id'] as int?,
+        wagePaymentId: map['wage_payment_id'] as int? ?? 0,
+        path: map['path'] as String? ?? '',
+        caption: map['caption'] as String? ?? '',
+        takenAt: map['taken_at'] as String? ?? '',
+      );
+}
+
+class ClientPayment {
+  final int? id;
+  final int clientId;
+  final double amount;
+  final String date;
+  final String note;
+  final String? clientName;
+
+  const ClientPayment({
+    this.id,
+    required this.clientId,
+    required this.amount,
+    required this.date,
+    this.note = '',
+    this.clientName,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'client_id': clientId,
+        'amount': amount,
+        'date': date,
+        'note': note,
+      };
+
+  factory ClientPayment.fromMap(Map<String, Object?> map) => ClientPayment(
+        id: map['id'] as int?,
+        clientId: map['client_id'] as int? ?? 0,
+        amount: (map['amount'] as num?)?.toDouble() ?? 0,
+        date: map['date'] as String? ?? '',
+        note: map['note'] as String? ?? '',
+        clientName: map['client_name'] as String?,
       );
 }
 

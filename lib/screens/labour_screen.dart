@@ -108,7 +108,12 @@ class _LabourScreenState extends State<LabourScreen>
         ...await app.repo.getWorkerProjectIds(worker!.id!),
     };
 
+    WageType _wageType = worker?.wageType ?? WageType.daily;
+
     if (!context.mounted) return;
+    final contractAmountController = TextEditingController(
+      text: worker == null ? '' : worker.contractAmount.toString(),
+    );
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (ctx) => Scaffold(
@@ -135,6 +140,42 @@ class _LabourScreenState extends State<LabourScreen>
                   decoration: const InputDecoration(labelText: 'Trade *'),
                 ),
                 const SizedBox(height: 12),
+                // Wage Type Dropdown
+                DropdownButtonFormField<WageType>(
+                  value: _wageType,
+                  decoration: const InputDecoration(labelText: 'Wage Type'),
+                  items: [
+                    DropdownMenuItem(
+                      value: WageType.daily,
+                      child: Text(WageType.daily.label),
+                    ),
+                    DropdownMenuItem(
+                      value: WageType.contract,
+                      child: Text(WageType.contract.label),
+                    ),
+                  ],
+                  onChanged: (WageType? value) {
+                    if (value != null) {
+                      setModal(() {
+                        _wageType = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                ...(_wageType == WageType.contract
+                    ? [
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: contractAmountController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(labelText: 'Contract Amount'),
+                        ),
+                        const SizedBox(height: 12),
+                      ]
+                    : []),
                 TextField(
                   controller: wage,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -210,7 +251,10 @@ class _LabourScreenState extends State<LabourScreen>
                 const SizedBox(height: 24),
                 FormActions(
                   primaryLabel: 'Save Worker',
-                  onCancel: () => Navigator.pop(ctx),
+                  onCancel: () {
+                    contractAmountController.dispose();
+                    Navigator.pop(ctx);
+                  },
                   onPrimary: () async {
                     if (name.text.trim().isEmpty ||
                         phone.text.trim().isEmpty ||
@@ -223,6 +267,7 @@ class _LabourScreenState extends State<LabourScreen>
                           ),
                         ),
                       );
+                      contractAmountController.dispose();
                       return;
                     }
                     if (selectedProjects.isEmpty) {
@@ -231,6 +276,7 @@ class _LabourScreenState extends State<LabourScreen>
                           content: Text('Assign at least one project'),
                         ),
                       );
+                      contractAmountController.dispose();
                       return;
                     }
                     await context.read<AppProvider>().saveWorker(
@@ -244,11 +290,16 @@ class _LabourScreenState extends State<LabourScreen>
                         address: address.text.trim(),
                         notes: notes.text.trim(),
                         joiningDate: joining,
+                        contractAmount: double.tryParse(contractAmountController.text) ?? 0,
+                        wageType: _wageType,
                         assignedProjectIds: selectedProjects.toList(),
                       ),
                       projectIds: selectedProjects.toList(),
                     );
-                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (ctx.mounted) {
+                      contractAmountController.dispose();
+                      Navigator.pop(ctx);
+                    }
                   },
                 ),
               ],
@@ -257,6 +308,7 @@ class _LabourScreenState extends State<LabourScreen>
         ),
       ),
     );
+    contractAmountController.dispose();
   }
 
   Future<void> _openWorkerDetail(BuildContext context, Worker w) async {
@@ -343,10 +395,21 @@ class _WorkersTab extends StatelessWidget {
               w.name,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-            subtitle: Text(
-              '${w.displayId} · ${w.trade.isEmpty ? 'Worker' : w.trade}\n${Formatters.money(w.dailyWageDefault, currency: currency)}/day',
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${w.displayId} · ${w.trade.isEmpty ? 'Worker' : w.trade}'),
+                if (w.wageType == WageType.contract) ...[
+                  Text('${w.wageType.label}: ${Formatters.money(w.contractAmount, currency: currency)}'),
+                  if (w.notes.isNotEmpty)
+                    Text(w.notes, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textMuted(context))),
+                ] else ...[
+                  Text('${w.wageType.label}: ${Formatters.money(w.dailyWageDefault, currency: currency)}/day'),
+                  if (w.notes.isNotEmpty)
+                    Text(w.notes, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textMuted(context))),
+                ],
+              ],
             ),
-            isThreeLine: true,
             trailing: IconButton(
               tooltip: 'Delete worker',
               onPressed: () => _confirmDelete(context, w),

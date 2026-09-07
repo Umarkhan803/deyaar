@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../utils/formatters.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/form_actions.dart';
+import 'client_view_screen.dart';
 
 class ClientsScreen extends StatefulWidget {
   final bool openAdd;
@@ -63,8 +64,22 @@ class _ClientsScreenState extends State<ClientsScreen> {
                         Formatters.money(c.contractValue, currency: currency),
                       ].join(' · '),
                     ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _openForm(context, client: c),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          tooltip: 'Edit Client',
+                          onPressed: () => _openForm(context, client: c),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outlined),
+                          tooltip: 'Delete Client',
+                          onPressed: () => _deleteClient(context, c),
+                        ),
+                      ],
+                    ),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ClientViewScreen(clientId: c.id!))),
                   ),
                 );
               },
@@ -155,5 +170,37 @@ class _ClientsScreenState extends State<ClientsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _deleteClient(BuildContext context, Client client) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Client'),
+          content: const Text('Are you sure you want to delete this client? This action cannot be undone.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Handle null case explicitly - if user dismisses dialog, confirmed is null
+    if (confirmed != null && confirmed && mounted) {
+      await context.read<AppProvider>().removeClient(client.id!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Client deleted successfully')),
+        );
+      }
+    }
   }
 }

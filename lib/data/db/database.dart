@@ -17,7 +17,7 @@ class AppDatabase {
     final path = join(dbPath, 'deyaar_constructions.db');
     return openDatabase(
       path,
-      version: 7,
+      version: 10,
       onCreate: (db, version) async {
         await _createV1(db);
         await _upgradeToV2(db);
@@ -26,6 +26,9 @@ class AppDatabase {
         await _upgradeToV5(db);
         await _upgradeToV6(db);
         await _upgradeToV7(db);
+        await _upgradeToV8(db);
+        await _upgradeToV9(db);
+        await _upgradeToV10(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) await _upgradeToV2(db);
@@ -34,6 +37,9 @@ class AppDatabase {
         if (oldVersion < 5) await _upgradeToV5(db);
         if (oldVersion < 6) await _upgradeToV6(db);
         if (oldVersion < 7) await _upgradeToV7(db);
+        if (oldVersion < 8) await _upgradeToV8(db);
+        if (oldVersion < 9) await _upgradeToV9(db);
+        if (oldVersion < 10) await _upgradeToV10(db);
       },
     );
   }
@@ -134,6 +140,16 @@ class AppDatabase {
         caption TEXT NOT NULL DEFAULT '',
         taken_at TEXT NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE wage_payment_photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        wage_payment_id INTEGER NOT NULL,
+        path TEXT NOT NULL,
+        caption TEXT NOT NULL DEFAULT '',
+        taken_at TEXT NOT NULL,
+        FOREIGN KEY (wage_payment_id) REFERENCES wage_payments(id) ON DELETE CASCADE
       )
     ''');
     await db.execute('''
@@ -378,6 +394,45 @@ class AppDatabase {
         rate REAL NOT NULL DEFAULT 0,
         sort_order INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
+      )
+    ''');
+  }
+
+  Future<void> _upgradeToV8(Database db) async {
+    Future<void> tryExec(String sql) async {
+      try {
+        await db.execute(sql);
+      } catch (_) {}
+    }
+
+    await tryExec("ALTER TABLE workers ADD COLUMN contract_amount REAL NOT NULL DEFAULT 0");
+  }
+
+  Future<void> _upgradeToV9(Database db) async {
+    Future<void> tryExec(String sql) async {
+      try {
+        await db.execute(sql);
+      } catch (_) {}
+    }
+
+    await tryExec("ALTER TABLE workers ADD COLUMN wage_type TEXT NOT NULL DEFAULT 'daily'");
+  }
+
+  Future<void> _upgradeToV10(Database db) async {
+    Future<void> tryExec(String sql) async {
+      try {
+        await db.execute(sql);
+      } catch (_) {}
+    }
+
+    await tryExec('''
+      CREATE TABLE IF NOT EXISTS client_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        date TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
       )
     ''');
   }

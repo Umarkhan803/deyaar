@@ -444,9 +444,17 @@ class _ProjectCard extends StatelessWidget {
   }
 }
 
+enum ViewType { fullDetails, photosOnly }
+
 class ProjectDetailScreen extends StatefulWidget {
   final int projectId;
-  const ProjectDetailScreen({super.key, required this.projectId});
+  final ViewType viewType;
+
+  const ProjectDetailScreen({
+    super.key,
+    required this.projectId,
+    this.viewType = ViewType.fullDetails,
+  });
 
   @override
   State<ProjectDetailScreen> createState() => _ProjectDetailScreenState();
@@ -641,7 +649,107 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
     final project = _project!;
     final done = _milestones.where((m) => m.done).length;
+    final viewType = widget.viewType; // Fix: Access viewType from widget
 
+    // If viewType is photosOnly, show simplified view
+    if (viewType == ViewType.photosOnly) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(project.name),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _addMedia,
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: const Text('Add Media'),
+        ),
+        body: _photos.isEmpty
+            ? const EmptyState(
+                message: 'No progress media yet. Add photos or video from gallery (multi) or camera.',
+                icon: Icons.photo_outlined,
+              )
+            : GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _photos.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                ),
+                itemBuilder: (context, i) {
+                  final photo = _photos[i];
+                  final mediaSvc =
+                      SiteMediaService(context.read<AppProvider>().repo);
+                  final isVideo = mediaSvc.isVideoPath(photo.path) ||
+                      photo.caption == 'video';
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Material(
+                      color: AppColors.sky,
+                      child: InkWell(
+                        onTap: () => _openMedia(photo),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            if (isVideo)
+                              const ColoredBox(
+                                color: Color(0xFF1B2A4A),
+                                child: Icon(
+                                  Icons.play_circle_outline,
+                                  color: Colors.white,
+                                  size: 48,
+                                ),
+                              )
+                            else
+                              Image.file(File(photo.path), fit: BoxFit.cover),
+                            Positioned(
+                              left: 6,
+                              bottom: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                color: Colors.black54,
+                                child: Text(
+                                  isVideo
+                                      ? 'Video · ${photo.takenAt}'
+                                      : photo.takenAt,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () async {
+                                  await context
+                                      .read<AppProvider>()
+                                      .repo
+                                      .deletePhoto(photo.id!);
+                                  if (mounted) await _load(); // Fix: Added mounted check
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+      );
+    }
+
+    // Original full details view
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _updateProgressSheet,
@@ -655,7 +763,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             icon: const Icon(Icons.edit_outlined),
             onPressed: () async {
               final saved = await openProjectEditor(context, project: project);
-              if (saved == true) await _load();
+              if (saved == true && mounted) await _load(); // Fix: Added mounted check
             },
           ),
           IconButton(

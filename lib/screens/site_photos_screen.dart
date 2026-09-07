@@ -38,7 +38,10 @@ class _SitePhotosScreenState extends State<SitePhotosScreen> {
   Future<void> _openProject(int projectId) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ProjectDetailScreen(projectId: projectId),
+        builder: (_) => ProjectDetailScreen(
+          projectId: projectId,
+          viewType: ViewType.photosOnly,
+        ),
       ),
     );
     await _load();

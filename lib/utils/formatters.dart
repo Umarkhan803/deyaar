@@ -30,4 +30,15 @@ class Formatters {
   static String todayIso() => _iso.format(DateTime.now());
 
   static String toIso(DateTime dt) => _iso.format(dt);
+
+  static String timeOfDay(String time) {
+    if (time.isEmpty) return '';
+    try {
+      // Parse HH:mm format and return it as is, or parse and reformat if needed
+      // For simplicity, we'll return the time string if it's in expected format
+      return time.length >= 5 ? time.substring(0, 5) : time;
+    } catch (_) {
+      return time;
+    }
+  }
 }

@@ -122,7 +122,7 @@ class PdfReportService {
               ),
             ),
           ),
-          if (trailing != null) trailing,
+          ?trailing,
         ],
       ),
     );
