@@ -307,7 +307,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currency = context.watch<AppProvider>.settings.currency;
+    final currency = context.watch<AppProvider>().settings.currency;
 
     return Scaffold(
       body: CustomScrollView(
@@ -910,7 +910,7 @@ class _WorkerAttendanceHistoryScreenState
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Row(
-                                mainAxisAlignment: MainAxisSpaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Wage: ${Formatters.money(attendance.wage, currency: context.read<AppProvider>().settings.currency)}',
@@ -1026,7 +1026,7 @@ class _WorkerTransactionPhotosScreenState
             ),
           ),
         ],
-      );
+      ),
     );
     if (ok == true && mounted) {
       // Photo was updated in the save action above
@@ -1141,4 +1141,3 @@ class _WorkerTransactionPhotosScreenState
                 ),
           );
   }
-};
