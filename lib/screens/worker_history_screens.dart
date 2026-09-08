@@ -691,67 +691,16 @@ class _WorkerPaymentHistoryScreenState
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                          w.wageType == WageType.contract
-                              ? Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Contract Amount',
-                                            style: TextStyle(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.85),
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            Formatters.money(
-                                              w.contractAmount,
-                                              currency: currency,
-                                            ),
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                              fontSize: 22,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            'Balance',
-                                            style: TextStyle(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.85),
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            Formatters.money(
-                                              w.contractAmount -
-                                              total, // Use the total variable we calculated above
-                                              currency: currency,
-                                            ),
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                              fontSize: 22,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ],
+                if (w.wageType == WageType.contract)
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.account_balance),
+                      title: const Text('Contract Balance'),
+                      subtitle: Text(
+                        Formatters.money(
+                          w.contractAmount - total,
+                          currency: currency,
+                        ),
                       ),
                     ),
                   ),
@@ -763,7 +712,7 @@ class _WorkerPaymentHistoryScreenState
                       ),
                 ),
                 const SizedBox(height: 10),
-                _payments.isEmpty
+                ...(_payments.isEmpty
                     ? [
                         const EmptyState(
                           message:
@@ -823,7 +772,7 @@ class _WorkerPaymentHistoryScreenState
                               ),
                             )
                           )
-                        ).toList(),
+                        ).toList()),
               ],
             ),
     );
@@ -1141,3 +1090,4 @@ class _WorkerTransactionPhotosScreenState
                 ),
           );
   }
+}
