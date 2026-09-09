@@ -1,271 +1,269 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
-import 'package:path/path.dart' as p;
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 
 import '../data/models/models.dart';
 import '../providers/app_provider.dart';
-import '../services/site_media_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/date_field.dart';
-import '../widgets/empty_state.dart';
+import 'transaction_photos_screen.dart';
+import 'worker_attendance_history_screen.dart';
+import 'worker_payment_history_screen.dart';
 
-/// Shared dialog for recording a wage payment (labour module only).
-Future<bool> showRecordWagePaymentDialog(BuildContext context, Worker w) async {
+// ─────────────────────────────────────────────────────────────────────────────
+// Record Payment dialog — shows contract balance hint for contract workers
+// ─────────────────────────────────────────────────────────────────────────────
+Future<bool> showRecordWagePaymentDialog(
+  BuildContext context,
+  Worker worker, {
+  double? currentTotalPaid, // pass in so we can compute live balance
+}) async {
   final app = context.read<AppProvider>();
-  final amount = TextEditingController(
-    text: w.dailyWageDefault > 0 ? w.dailyWageDefault.toStringAsFixed(0) : '',
+
+  // If not passed in, fetch it now
+  double alreadyPaid = currentTotalPaid ?? 0;
+  if (currentTotalPaid == null) {
+    alreadyPaid = await app.repo.getWorkerTotalPaid(worker.id!);
+  }
+
+  // Guard: context may be gone after the await above
+  if (!context.mounted) return false;
+
+  final amountCtrl = TextEditingController(
+    text: worker.wageType == WageType.daily && worker.dailyWageDefault > 0
+        ? worker.dailyWageDefault.toStringAsFixed(0)
+        : '',
   );
+  final noteCtrl = TextEditingController();
   var date = Formatters.todayIso();
-  int? projectId =
-      w.assignedProjectIds.isNotEmpty ? w.assignedProjectIds.first : null;
-  final notes = TextEditingController();
-  final List<String> selectedPhotoPaths = [];
+  int? projectId = worker.assignedProjectIds.isNotEmpty
+      ? worker.assignedProjectIds.first
+      : null;
   var saved = false;
 
   await showDialog<void>(
     context: context,
-    builder: (BuildContext ctx) => StatefulBuilder(
-      builder: (BuildContext ctx, StateSetter setState) => AlertDialog(
-        title: const Text('Record Payment'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setDialogState) {
+        // Live balance for contract workers
+        final enteredAmount =
+            double.tryParse(amountCtrl.text.trim()) ?? 0;
+        final balance =
+            worker.contractAmount - alreadyPaid - enteredAmount;
+
+        return AlertDialog(
+          title: Row(
             children: [
-              TextField(
-                controller: amount,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Amount *'),
-              ),
-              const SizedBox(height: 10),
-              DateField(
-                label: 'Date *',
-                value: date,
-                onChanged: (String v) => setState(() => date = v),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<int?>(
-                value: projectId,
-                decoration: const InputDecoration(labelText: 'Project *'),
-                items: [
-                  ...app.projects.map(
-                    (Project p) => DropdownMenuItem<int?>(
-                      value: p.id,
-                      child: Text(p.name),
+              const Expanded(child: Text('Record Payment')),
+              if (worker.wageType == WageType.contract)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Contract',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.warning,
                     ),
                   ),
-                ],
-                onChanged: (int? v) => setState(() => projectId = v),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: notes,
-                decoration:
-                    const InputDecoration(labelText: 'Notes (optional)'),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Transaction Photos (Proofs)',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (selectedPhotoPaths.isNotEmpty)
-                    ...selectedPhotoPaths.map((String path) => Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                File(path),
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: GestureDetector(
-                                onTap: () => setState(() =>
-                                    selectedPhotoPaths.remove(path)),
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.7),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.clear,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      // Show photo source selection dialog
-                      final ImageSource? source = await showDialog<ImageSource>(
-                        context: ctx,
-                        builder: (BuildContext context) => AlertDialog(
-                          title: const Text('Select Photo Source'),
-                          content: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ListTile(
-                                  leading: const Icon(Icons.photo_library),
-                                  title: const Text('Gallery'),
-                                  onTap: () =>
-                                      Navigator.of(context).pop(ImageSource.gallery),
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.camera_alt),
-                                  title: const Text('Camera'),
-                                  onTap: () =>
-                                      Navigator.of(context).pop(ImageSource.camera),
-                                ),
-                              ],
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              child: const Text('Cancel'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      if (source == null) return;
-
-                      final ImagePicker imagePicker = ImagePicker();
-                      final List<XFile> files;
-
-                      if (source == ImageSource.gallery) {
-                        final List<XFile> pickedFiles =
-                            await imagePicker.pickMultiImage(imageQuality: 85);
-                        files = pickedFiles;
-                      } else {
-                        final XFile? pickedFile =
-                            await imagePicker.pickImage(
-                              source: ImageSource.camera,
-                              imageQuality: 85,
-                            );
-                        files = pickedFile != null ? [pickedFile] : [];
-                      }
-
-                      if (!ctx.mounted || files.isEmpty) return;
-
-                      final SiteMediaService media = SiteMediaService(
-                          ctx.read<AppProvider>().repo);
-                      final Directory photosDir =
-                          await media.photosDir();
-
-                      for (final XFile file in files) {
-                        final String name =
-                            'wp_${DateTime.now().millisecondsSinceEpoch}_${p.extension(file.path)}';
-                        var savedFile =
-                            await File(file.path).copy(p.join(photosDir.path, name));
-
-                        setState(() {
-                          selectedPhotoPaths.add(savedFile.path);
-                        });
-                      }
-
-                      if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '${files.length} photo${files.length > 1 ? 's' : ''} added'),
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.add_photo_alternate),
-                    label: const Text('Add Photos'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final String amountText = amount.text.trim();
-              final double value = double.tryParse(amountText) ?? 0;
-              if (value <= 0) {
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('Enter a valid amount')),
-                  );
-                }
-                return;
-              }
-              if (projectId == null) {
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('Select a project')),
-                  );
-                }
-                return;
-              }
-
-              // Save the wage payment first to get an ID
-              final int wagePaymentId = await app.repo.upsertWagePayment(
-                WagePayment(
-                  workerId: w.id!,
-                  amount: value,
-                  date: date,
-                  note: notes.text.trim(),
-                  projectId: projectId,
-                ),
-              );
-
-              // Save selected photos as WagePaymentPhoto records
-              if (selectedPhotoPaths.isNotEmpty) {
-                for (final String path in selectedPhotoPaths) {
-                  await app.addWagePaymentPhoto(
-                    WagePaymentPhoto(
-                      wagePaymentId: wagePaymentId,
-                      path: path,
-                      takenAt:
-                          DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Contract balance card
+                if (worker.wageType == WageType.contract) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: balance < 0
+                          ? AppColors.danger.withValues(alpha: 0.08)
+                          : AppColors.success.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: balance < 0
+                            ? AppColors.danger.withValues(alpha: 0.3)
+                            : AppColors.success.withValues(alpha: 0.3),
+                      ),
                     ),
-                  );
-                }
-              }
-
-              saved = true;
-              if (ctx.mounted) Navigator.of(ctx).pop();
-            },
-            child: const Text('Save'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _BalanceRow(
+                          label: 'Contract Amount',
+                          value: Formatters.money(worker.contractAmount),
+                        ),
+                        _BalanceRow(
+                          label: 'Paid So Far',
+                          value: Formatters.money(alreadyPaid),
+                          valueColor: AppColors.danger,
+                        ),
+                        if (enteredAmount > 0)
+                          _BalanceRow(
+                            label: 'This Payment',
+                            value: '- ${Formatters.money(enteredAmount)}',
+                            valueColor: AppColors.danger,
+                          ),
+                        const Divider(height: 10),
+                        _BalanceRow(
+                          label: 'Remaining Balance',
+                          value: Formatters.money(balance.abs()),
+                          valueColor: balance < 0
+                              ? AppColors.danger
+                              : AppColors.success,
+                          bold: true,
+                          prefix: balance < 0 ? 'Overpaid  ' : '',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true),
+                  decoration: const InputDecoration(labelText: 'Amount *'),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                const SizedBox(height: 10),
+                DateField(
+                  label: 'Date *',
+                  value: date,
+                  onChanged: (v) => setDialogState(() => date = v),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<int?>(
+                  initialValue: projectId,
+                  decoration:
+                      const InputDecoration(labelText: 'Project *'),
+                  items: app.projects
+                      .map((proj) => DropdownMenuItem<int?>(
+                            value: proj.id,
+                            child: Text(proj.name),
+                          ))
+                      .toList(),
+                  onChanged: (v) =>
+                      setDialogState(() => projectId = v),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: noteCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                      labelText: 'Note (optional)'),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final value =
+                    double.tryParse(amountCtrl.text.trim()) ?? 0;
+                if (value <= 0 || projectId == null) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                        content: Text(
+                            'Enter an amount and select a project')),
+                  );
+                  return;
+                }
+                await app.saveWagePayment(
+                  WagePayment(
+                    workerId: worker.id!,
+                    amount: value,
+                    date: date,
+                    note: noteCtrl.text.trim(),
+                    projectId: projectId,
+                  ),
+                );
+                saved = true;
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
     ),
   );
   return saved;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Small helper widget for the balance rows
+// ─────────────────────────────────────────────────────────────────────────────
+class _BalanceRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool bold;
+  final String prefix;
+
+  const _BalanceRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.bold = false,
+    this.prefix = '',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+              color: bold ? null : AppColors.textMuted(context),
+            ),
+          ),
+          Text(
+            '$prefix$value',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+              color: valueColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Transaction Photos — navigate to dedicated full screen (like site photos)
+// ─────────────────────────────────────────────────────────────────────────────
+void openTransactionPhotosScreen(BuildContext context, Worker worker) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => TransactionPhotosScreen(worker: worker),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WorkerDetailScreen
+// ─────────────────────────────────────────────────────────────────────────────
 class WorkerDetailScreen extends StatefulWidget {
   final Worker worker;
   final VoidCallback onEdit;
@@ -283,811 +281,233 @@ class WorkerDetailScreen extends StatefulWidget {
 class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   double _totalPaid = 0;
 
-  Worker get w => widget.worker;
+  Worker get worker => widget.worker;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadTotalPaid();
   }
 
-  Future<void> _load() async {
+  Future<void> _loadTotalPaid() async {
     final total =
-        await context.read<AppProvider>().repo.getWorkerTotalPaid(w.id!);
-    if (!mounted) return;
-    setState(() => _totalPaid = total);
+        await context.read<AppProvider>().repo.getWorkerTotalPaid(worker.id!);
+    if (mounted) setState(() => _totalPaid = total);
   }
 
-  Future<void> _showAddProofsDialog(BuildContext context, Worker worker) async {
-    final ok = await showRecordWagePaymentDialog(context, worker);
-    if (ok) {
-      await _load();
+  Future<void> _recordPayment() async {
+    if (await showRecordWagePaymentDialog(
+      context,
+      worker,
+      currentTotalPaid: _totalPaid,
+    )) {
+      await _loadTotalPaid();
+    }
+  }
+
+  Future<void> _deleteWorker() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete worker?'),
+        content: Text(
+          'Delete ${worker.name}? Attendance and wage payments for this worker will also be removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete',
+                style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted && worker.id != null) {
+      await context.read<AppProvider>().removeWorker(worker.id!);
+      if (mounted) Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final currency = context.watch<AppProvider>().settings.currency;
+    final isContract = worker.wageType == WageType.contract;
+    final balance = worker.contractAmount - _totalPaid;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 180,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                color: AppColors.primaryBlue.withValues(alpha: 0.25),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 40),
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundColor: AppColors.primaryBlue,
-                      child: Text(
-                        w.name.isNotEmpty ? w.name[0].toUpperCase() : '?',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      w.name,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    Text(w.trade.isEmpty ? 'Worker' : w.trade),
-                  ],
+      appBar: AppBar(title: Text(worker.name)),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.phone),
+                  title: const Text('Mobile'),
+                  subtitle: Text(
+                      worker.phone.isEmpty ? 'Not provided' : worker.phone),
                 ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Worker Information',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.primaryBlue,
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.phone),
-                          title: const Text('Mobile'),
-                          subtitle: Text(w.phone.isEmpty ? '—' : w.phone),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.payments_outlined),
-                          title: const Text('Daily Wage'),
-                          subtitle: Text(
-                            Formatters.money(
-                              w.dailyWageDefault,
-                              currency: currency,
-                            ),
-                          ),
-                        ),
-                        ListTile(
-                          leading: const Icon(
-                            Icons.account_balance_wallet_outlined,
-                          ),
-                          title: const Text('Total Paid'),
-                          subtitle: Text(
-                            Formatters.money(_totalPaid, currency: currency),
-                          ),
-                        ),
-                        if (w.wageType == WageType.contract) ...[
-                          ListTile(
-                            leading: const Icon(
-                              Icons.description,
-                            ),
-                            title: const Text('Contract Amount'),
-                            subtitle: Text(
-                              Formatters.money(w.contractAmount, currency: currency),
-                            ),
-                          ),
-                          ListTile(
-                            leading: const Icon(
-                              Icons.account_balance,
-                            ),
-                            title: const Text('Balance'),
-                            subtitle: Text(
-                              Formatters.money(w.contractAmount - _totalPaid, currency: currency),
-                            ),
-                          ),
-                        ],
-                        ListTile(
-                          leading: const Icon(Icons.calendar_today_outlined),
-                          title: const Text('Joining Date'),
-                          subtitle: Text(Formatters.dateDisplay(w.joiningDate)),
-                        ),
-                      ],
+                ListTile(
+                  leading: const Icon(Icons.work_outline),
+                  title: const Text('Trade'),
+                  subtitle: Text(
+                      worker.trade.isEmpty ? 'Worker' : worker.trade),
+                ),
+                // Wage type row
+                ListTile(
+                  leading: const Icon(Icons.category_outlined),
+                  title: const Text('Wage Type'),
+                  subtitle: Text(worker.wageType.label),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isContract
+                          ? AppColors.warning.withValues(alpha: 0.15)
+                          : AppColors.primaryBlue.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.fact_check_outlined),
+                    child: Text(
+                      isContract ? 'CONTRACT' : 'DAILY',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isContract
+                            ? AppColors.warning
+                            : AppColors.primaryBlue,
                       ),
-                      title: const Text('Attendance History'),
-                      subtitle: const Text(
-                        "View this worker's daily attendance",
+                    ),
+                  ),
+                ),
+                if (isContract) ...[
+                  // Contract amount
+                  ListTile(
+                    leading: const Icon(Icons.receipt_long_outlined),
+                    title: const Text('Contract Amount'),
+                    subtitle: Text(
+                        Formatters.money(worker.contractAmount,
+                            currency: currency)),
+                  ),
+                  // Total paid
+                  ListTile(
+                    leading: const Icon(Icons.account_balance_wallet_outlined),
+                    title: const Text('Total Paid'),
+                    subtitle: Text(
+                        Formatters.money(_totalPaid, currency: currency)),
+                  ),
+                  // Balance
+                  ListTile(
+                    leading: Icon(
+                      balance < 0
+                          ? Icons.warning_amber_outlined
+                          : Icons.savings_outlined,
+                      color:
+                          balance < 0 ? AppColors.danger : AppColors.success,
+                    ),
+                    title: Text(
+                      balance < 0 ? 'Overpaid' : 'Remaining Balance',
+                      style: TextStyle(
+                        color: balance < 0
+                            ? AppColors.danger
+                            : AppColors.success,
+                        fontWeight: FontWeight.w700,
                       ),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                WorkerAttendanceHistoryScreen(worker: w),
-                          ),
-                        );
-                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.payments_outlined),
+                    subtitle: Text(
+                      Formatters.money(balance.abs(), currency: currency),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: balance < 0
+                            ? AppColors.danger
+                            : AppColors.success,
                       ),
-                      title: const Text('Payment History'),
-                      subtitle: const Text('Record and view wage payments'),
-                      onTap: () async {
-                        await _showAddProofsDialog(context, w);
-                        await _load();
-                      },
                     ),
                   ),
-                  Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.photo_library_outlined),
-                      ),
-                      title: const Text('Transaction Photos'),
-                      subtitle: const Text('View payment proof photos'),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                WorkerTransactionPhotosScreen(worker: w),
-                          ),
-                        );
-                      },
-                    ),
+                ] else ...[
+                  // Daily wage worker
+                  ListTile(
+                    leading: const Icon(Icons.payments_outlined),
+                    title: const Text('Daily Wage'),
+                    subtitle: Text(Formatters.money(worker.dailyWageDefault,
+                        currency: currency)),
                   ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => _showAddProofsDialog(context, w),
-                    icon: const Icon(Icons.add_photo_alternate),
-                    label: const Text('Add Payment Photo'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: widget.onEdit,
-                    child: const Text('Edit worker'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: () => _showAddProofsDialog(context, w),
-                    child: const Text('Add Transaction Proofs'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: () async {
-                      final ok = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Delete worker?'),
-                          content: Text(
-                            'Delete ${w.name}? Attendance and wage payments for this worker will also be removed.',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text(
-                                'Delete',
-                                style: TextStyle(color: AppColors.danger),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (ok == true && context.mounted && w.id != null) {
-                        await context.read<AppProvider>().removeWorker(w.id!);
-                        if (context.mounted) Navigator.pop(context);
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                    ),
-                    child: const Text('Delete worker'),
+                  ListTile(
+                    leading:
+                        const Icon(Icons.account_balance_wallet_outlined),
+                    title: const Text('Total Paid'),
+                    subtitle: Text(
+                        Formatters.money(_totalPaid, currency: currency)),
                   ),
                 ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class WorkerPaymentHistoryScreen extends StatefulWidget {
-  final Worker worker;
-  const WorkerPaymentHistoryScreen({super.key, required this.worker});
-
-  @override
-  State<WorkerPaymentHistoryScreen> createState() =>
-      _WorkerPaymentHistoryScreenState();
-}
-
-class _WorkerPaymentHistoryScreenState
-    extends State<WorkerPaymentHistoryScreen> {
-  List<WagePayment> _payments = [];
-  bool _loading = true;
-
-  Worker get w => widget.worker;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final list =
-        await context.read<AppProvider>().repo.getWagePayments(workerId: w.id);
-    if (!mounted) return;
-    setState(() {
-      _payments = list;
-      _loading = false;
-    });
-  }
-
-  Future<void> _record() async {
-    final ok = await showRecordWagePaymentDialog(context, w);
-    if (ok) await _load();
-  }
-
-  Future<void> _delete(WagePayment p) async {
-    if (p.id == null) return;
-    final currency = context.read<AppProvider>().settings.currency;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete payment?'),
-        content: Text(
-          '${Formatters.dateDisplay(p.date)} · ${Formatters.money(p.amount, currency: currency)}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppColors.danger),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (ok == true && mounted) {
-      await context.read<AppProvider>().removeWagePayment(p.id!);
-      await _load();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final currency = context.watch<AppProvider>().settings.currency;
-    final total = _payments.fold<double>(0, (a, b) => a + b.amount);
-
-    return Scaffold(
-      appBar: AppBar(title: Text(w.name)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _record,
-        icon: const Icon(Icons.add),
-        label: const Text('Record Payment'),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-              children: [
-                Card(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.85),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: DefaultTextStyle(
-                      style: const TextStyle(color: Colors.white),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Payment Summary',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Total Paid',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 22,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      Formatters.money(
-                                        total,
-                                        currency: currency,
-                                      ),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 22,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Daily Wage',
-                                      style: TextStyle(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.85),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      Formatters.money(
-                                        w.dailyWageDefault,
-                                        currency: currency,
-                                      ),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                ListTile(
+                  leading: const Icon(Icons.calendar_today_outlined),
+                  title: const Text('Joining Date'),
+                  subtitle: Text(Formatters.dateDisplay(worker.joiningDate)),
                 ),
-                if (w.wageType == WageType.contract)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.account_balance),
-                      title: const Text('Contract Balance'),
-                      subtitle: Text(
-                        Formatters.money(
-                          w.contractAmount - total,
-                          currency: currency,
-                        ),
-                      ),
-                    ),
+                if (worker.notes.isNotEmpty)
+                  ListTile(
+                    leading: const Icon(Icons.notes_outlined),
+                    title: const Text('Note'),
+                    subtitle: Text(worker.notes),
                   ),
-                const SizedBox(height: 20),
-                Text(
-                  'Payment Timeline',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 10),
-                ...(_payments.isEmpty
-                    ? [
-                        const EmptyState(
-                          message:
-                              'No payments yet.\nTap Record Payment to add one.',
-                          icon: Icons.payments_outlined,
-                        )
-                      ]
-                    : _payments
-                        .map((p) => Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: ListTile(
-                              title: Text(
-                                Formatters.dateDisplay(p.date),
-                                style: const TextStyle(fontWeight: FontWeight.w700),
-                              ),
-                              subtitle: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    (p.projectName ?? '').trim().isEmpty
-                                        ? 'No project'
-                                        : p.projectName!,
-                                  ),
-                                  if (p.note.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Text(
-                                        p.note,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.textMuted(context),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    Formatters.money(p.amount, currency: currency),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.primaryBlue,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Delete',
-                                    onPressed: () => _delete(p),
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      color: AppColors.warning,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          )
-                        ).toList()),
               ],
             ),
-    );
-  }
-}
-
-/// View-only attendance history — marking is done in Labour Overview.
-class WorkerAttendanceHistoryScreen extends StatefulWidget {
-  final Worker worker;
-  const WorkerAttendanceHistoryScreen({super.key, required this.worker});
-
-  @override
-  State<WorkerAttendanceHistoryScreen> createState() =>
-      _WorkerAttendanceHistoryScreenState();
-}
-
-class _WorkerAttendanceHistoryScreenState
-    extends State<WorkerAttendanceHistoryScreen> {
-  List<Attendance> _rows = [];
-  bool _loading = true;
-
-  Worker get w => widget.worker;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final list =
-        await context.read<AppProvider>().repo.getAttendance(workerId: w.id);
-    if (!mounted) return;
-    setState(() {
-      _rows = list;
-      _loading = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Attendance History for ${w.name}'),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _rows.isEmpty
-              ? EmptyState(
-                  message: 'No attendance records yet.',
-                  icon: Icons.event_busy,
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _rows.length,
-                  itemBuilder: (_, index) {
-                    final attendance = _rows[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            leading: const Icon(Icons.access_alarm),
-                            title: Text(
-                              Formatters.dateDisplay(attendance.date),
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Text(
-                              attendance.status == AttendanceStatus.present
-                                  ? 'Present'
-                                  : attendance.status == AttendanceStatus.absent
-                                      ? 'Absent'
-                                      : 'Half Day',
-                              style: TextStyle(
-                                color: attendance.status == AttendanceStatus.present
-                                    ? Colors.green
-                                    : attendance.status == AttendanceStatus.absent
-                                        ? Colors.red
-                                        : Colors.orange,
-                              ),
-                            ),
-                          ),
-                          if (attendance.wage > 0 || attendance.overtimeHours > 0)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Wage: ${Formatters.money(attendance.wage, currency: context.read<AppProvider>().settings.currency)}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textMuted(context),
-                                    ),
-                                  ),
-                                  Text(
-                                    'OT: ${attendance.overtimeHours} hrs',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textMuted(context),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-          );
-  }
-}
-
-class WorkerTransactionPhotosScreen extends StatefulWidget {
-  final Worker worker;
-  const WorkerTransactionPhotosScreen({super.key, required this.worker});
-
-  @override
-  State<WorkerTransactionPhotosScreen> createState() =>
-      _WorkerTransactionPhotosScreenState();
-}
-
-class _WorkerTransactionPhotosScreenState
-    extends State<WorkerTransactionPhotosScreen> {
-  List<WagePaymentPhoto> _photos = [];
-  bool _loading = true;
-
-  Worker get w => widget.worker;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final list =
-        await context.read<AppProvider>().repo.getWagePaymentPhotosForWorker(w.id!);
-    if (!mounted) return;
-    setState(() {
-      _photos = list;
-      _loading = false;
-    });
-  }
-
-  Future<void> _deletePhoto(WagePaymentPhoto photo) async {
-    if (photo.id == null) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete photo?'),
-        content: const Text('This photo will be permanently deleted.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppColors.danger),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _recordPayment,
+            icon: const Icon(Icons.add),
+            label: const Text('Record Payment'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () =>
+                openTransactionPhotosScreen(context, worker),
+            icon: const Icon(Icons.photo_library_outlined),
+            label: const Text('Transaction Photos'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: widget.onEdit,
+            child: const Text('Edit worker'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    WorkerAttendanceHistoryScreen(worker: worker),
+              ),
             ),
+            icon: const Icon(Icons.calendar_month_outlined),
+            label: const Text('Attendance History'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    WorkerPaymentHistoryScreen(worker: worker),
+              ),
+            ),
+            icon: const Icon(Icons.payments_outlined),
+            label: const Text('Payment History'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _deleteWorker,
+            style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.danger),
+            child: const Text('Delete worker'),
           ),
         ],
       ),
     );
-    if (ok == true && mounted) {
-      await context.read<AppProvider>().repo.deleteWagePaymentPhoto(photo.id!);
-      await _load();
-    }
-  }
-
-  Future<void> _editCaption(WagePaymentPhoto photo) async {
-    final captionController = TextEditingController(text: photo.caption);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Photo Note'),
-        content: SingleChildScrollView(
-          child: TextField(
-            controller: captionController,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Note',
-              hintText: 'Add a note about this photo',
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Save',
-            ),
-          ),
-        ],
-      ),
-    );
-    if (ok == true && mounted) {
-      // Photo was updated in the save action above
-      final updatedPhoto = photo.copyWith(
-        caption: captionController.text.trim(),
-      );
-      await context
-          .read<AppProvider>()
-          .repo
-          .upsertWagePaymentPhoto(updatedPhoto);
-      await _load();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Transaction Photos for ${w.name}'),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _photos.isEmpty
-              ? EmptyState(
-                  message: 'No transaction photos yet.\nRecord a payment with photos to add some.',
-                  icon: Icons.photo_library_outlined,
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _photos.length,
-                  itemBuilder: (_, index) {
-                    final photo = _photos[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(
-                                  File(photo.path),
-                                  width: double.infinity,
-                                  height: 200,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: PopupMenuButton<int>(
-                                  icon: const Icon(Icons.more_vert),
-                                  itemBuilder: (_) => [
-                                        const PopupMenuItem(
-                                          value: 1,
-                                          child: Text('Edit Note'),
-                                        ),
-                                        const PopupMenuItem(
-                                          value: 2,
-                                          child: Text('Delete Photo'),
-                                        ),
-                                      ],
-                                  onSelected: (value) async {
-                                    if (value == 1) {
-                                      await _editCaption(photo);
-                                    } else if (value == 2) {
-                                      await _deletePhoto(photo);
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (photo.caption.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Text(
-                                photo.caption,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.textMuted(context),
-                                ),
-                              ),
-                            ),
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  Formatters.dateDisplay(
-                                      photo.takenAt.split(' ')[0]),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textMuted(context),
-                                  ),
-                                ),
-                                Text(
-                                  photo.takenAt.split(' ')[1],
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textMuted(context),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-          );
   }
 }

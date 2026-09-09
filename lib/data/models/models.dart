@@ -76,22 +76,22 @@ class Client {
   }
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'name': name,
-        'phone': phone,
-        'location': location,
-        'contract_value': contractValue,
-        'notes': notes,
-      };
+    'id': id,
+    'name': name,
+    'phone': phone,
+    'location': location,
+    'contract_value': contractValue,
+    'notes': notes,
+  };
 
   factory Client.fromMap(Map<String, Object?> map) => Client(
-        id: map['id'] as int?,
-        name: map['name'] as String? ?? '',
-        phone: map['phone'] as String? ?? '',
-        location: map['location'] as String? ?? '',
-        contractValue: (map['contract_value'] as num?)?.toDouble() ?? 0,
-        notes: map['notes'] as String? ?? '',
-      );
+    id: map['id'] as int?,
+    name: map['name'] as String? ?? '',
+    phone: map['phone'] as String? ?? '',
+    location: map['location'] as String? ?? '',
+    contractValue: (map['contract_value'] as num?)?.toDouble() ?? 0,
+    notes: map['notes'] as String? ?? '',
+  );
 }
 
 enum ProjectStatus {
@@ -137,10 +137,13 @@ class Project {
   final ProjectStatus status;
   final String? clientName;
   final String location;
+
   /// Covered area used for Cost of Construction quotes (sq ft).
   final double coveredAreaSft;
+
   /// Construction rate per sq ft.
   final double ratePerSft;
+
   /// Duration / notes line for the cost section.
   final String constructionDuration;
 
@@ -159,7 +162,8 @@ class Project {
     this.constructionDuration = '',
   });
 
-  String get displayId => id == null ? 'PRJ-????' : 'PRJ-${id!.toString().padLeft(4, '0')}';
+  String get displayId =>
+      id == null ? 'PRJ-????' : 'PRJ-${id!.toString().padLeft(4, '0')}';
 
   double get totalConstructionCost => coveredAreaSft * ratePerSft;
 
@@ -194,33 +198,33 @@ class Project {
   }
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'client_id': clientId,
-        'name': name,
-        'start_date': startDate,
-        'expected_end': expectedEnd,
-        'progress': progress,
-        'status': status.name,
-        'location': location,
-        'covered_area_sft': coveredAreaSft,
-        'rate_per_sft': ratePerSft,
-        'construction_duration': constructionDuration,
-      };
+    'id': id,
+    'client_id': clientId,
+    'name': name,
+    'start_date': startDate,
+    'expected_end': expectedEnd,
+    'progress': progress,
+    'status': status.name,
+    'location': location,
+    'covered_area_sft': coveredAreaSft,
+    'rate_per_sft': ratePerSft,
+    'construction_duration': constructionDuration,
+  };
 
   factory Project.fromMap(Map<String, Object?> map) => Project(
-        id: map['id'] as int?,
-        clientId: map['client_id'] as int?,
-        name: map['name'] as String? ?? '',
-        startDate: map['start_date'] as String? ?? '',
-        expectedEnd: map['expected_end'] as String? ?? '',
-        progress: (map['progress'] as num?)?.toDouble() ?? 0,
-        status: ProjectStatus.fromString(map['status'] as String?),
-        clientName: map['client_name'] as String?,
-        location: map['location'] as String? ?? '',
-        coveredAreaSft: (map['covered_area_sft'] as num?)?.toDouble() ?? 0,
-        ratePerSft: (map['rate_per_sft'] as num?)?.toDouble() ?? 0,
-        constructionDuration: map['construction_duration'] as String? ?? '',
-      );
+    id: map['id'] as int?,
+    clientId: map['client_id'] as int?,
+    name: map['name'] as String? ?? '',
+    startDate: map['start_date'] as String? ?? '',
+    expectedEnd: map['expected_end'] as String? ?? '',
+    progress: (map['progress'] as num?)?.toDouble() ?? 0,
+    status: ProjectStatus.fromString(map['status'] as String?),
+    clientName: map['client_name'] as String?,
+    location: map['location'] as String? ?? '',
+    coveredAreaSft: (map['covered_area_sft'] as num?)?.toDouble() ?? 0,
+    ratePerSft: (map['rate_per_sft'] as num?)?.toDouble() ?? 0,
+    constructionDuration: map['construction_duration'] as String? ?? '',
+  );
 }
 
 class ProjectMilestone {
@@ -241,15 +245,16 @@ class ProjectMilestone {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'project_id': projectId,
-        'title': title,
-        'done': done ? 1 : 0,
-        'completed_at': completedAt,
-        'sort_order': sortOrder,
-      };
+    'id': id,
+    'project_id': projectId,
+    'title': title,
+    'done': done ? 1 : 0,
+    'completed_at': completedAt,
+    'sort_order': sortOrder,
+  };
 
-  factory ProjectMilestone.fromMap(Map<String, Object?> map) => ProjectMilestone(
+  factory ProjectMilestone.fromMap(Map<String, Object?> map) =>
+      ProjectMilestone(
         id: map['id'] as int?,
         projectId: map['project_id'] as int? ?? 0,
         title: map['title'] as String? ?? '',
@@ -286,18 +291,18 @@ class AdminMilestone {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'title': title,
-        'sort_order': sortOrder,
-        'created_at': createdAt,
-      };
+    'id': id,
+    'title': title,
+    'sort_order': sortOrder,
+    'created_at': createdAt,
+  };
 
   factory AdminMilestone.fromMap(Map<String, Object?> map) => AdminMilestone(
-        id: map['id'] as int?,
-        title: map['title'] as String? ?? '',
-        sortOrder: map['sort_order'] as int? ?? 0,
-        createdAt: map['created_at'] as String? ?? '',
-      );
+    id: map['id'] as int?,
+    title: map['title'] as String? ?? '',
+    sortOrder: map['sort_order'] as int? ?? 0,
+    createdAt: map['created_at'] as String? ?? '',
+  );
 }
 
 class Worker {
@@ -312,6 +317,7 @@ class Worker {
   final String joiningDate;
   final double contractAmount;
   final WageType wageType;
+
   /// Assigned project ids (runtime / form; not a DB column on workers).
   final List<int> assignedProjectIds;
 
@@ -367,34 +373,34 @@ class Worker {
   }
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'name': name,
-        'phone': phone,
-        'trade': trade,
-        'daily_wage_default': dailyWageDefault,
-        'experience': experience,
-        'address': address,
-        'notes': notes,
-        'joining_date': joiningDate,
-        'contract_amount': contractAmount,
-        'wage_type': wageType.name,
-      };
+    'id': id,
+    'name': name,
+    'phone': phone,
+    'trade': trade,
+    'daily_wage_default': dailyWageDefault,
+    'experience': experience,
+    'address': address,
+    'notes': notes,
+    'joining_date': joiningDate,
+    'contract_amount': contractAmount,
+    'wage_type': wageType.name,
+  };
 
   factory Worker.fromMap(Map<String, Object?> map) => Worker(
-        id: map['id'] as int?,
-        name: map['name'] as String? ?? '',
-        phone: map['phone'] as String? ?? '',
-        trade: map['trade'] as String? ?? '',
-        dailyWageDefault: (map['daily_wage_default'] as num?)?.toDouble() ?? 0,
-        experience: map['experience'] as String? ?? '',
-        address: map['address'] as String? ?? '',
-        notes: map['notes'] as String? ?? '',
-        joiningDate: map['joining_date'] as String? ?? '',
-        contractAmount: (map['contract_amount'] as num?)?.toDouble() ?? 0,
-        wageType: (map['wage_type'] as String?) == 'contract'
-            ? WageType.contract
-            : WageType.daily,
-      );
+    id: map['id'] as int?,
+    name: map['name'] as String? ?? '',
+    phone: map['phone'] as String? ?? '',
+    trade: map['trade'] as String? ?? '',
+    dailyWageDefault: (map['daily_wage_default'] as num?)?.toDouble() ?? 0,
+    experience: map['experience'] as String? ?? '',
+    address: map['address'] as String? ?? '',
+    notes: map['notes'] as String? ?? '',
+    joiningDate: map['joining_date'] as String? ?? '',
+    contractAmount: (map['contract_amount'] as num?)?.toDouble() ?? 0,
+    wageType: (map['wage_type'] as String?) == 'contract'
+        ? WageType.contract
+        : WageType.daily,
+  );
 }
 
 enum AttendanceStatus {
@@ -450,7 +456,8 @@ class Attendance {
     this.projectName,
   });
 
-  bool get present => status == AttendanceStatus.present || status == AttendanceStatus.half;
+  bool get present =>
+      status == AttendanceStatus.present || status == AttendanceStatus.half;
 
   String get statusLabel {
     switch (status) {
@@ -464,15 +471,15 @@ class Attendance {
   }
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'worker_id': workerId,
-        'project_id': projectId,
-        'date': date,
-        'status': status.name,
-        'present': present ? 1 : 0,
-        'wage': wage,
-        'overtime_hours': overtimeHours,
-      };
+    'id': id,
+    'worker_id': workerId,
+    'project_id': projectId,
+    'date': date,
+    'status': status.name,
+    'present': present ? 1 : 0,
+    'wage': wage,
+    'overtime_hours': overtimeHours,
+  };
 
   factory Attendance.fromMap(Map<String, Object?> map) {
     final statusRaw = map['status'] as String?;
@@ -520,24 +527,24 @@ class WagePayment {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'worker_id': workerId,
-        'amount': amount,
-        'date': date,
-        'note': note,
-        'project_id': projectId,
-      };
+    'id': id,
+    'worker_id': workerId,
+    'amount': amount,
+    'date': date,
+    'note': note,
+    'project_id': projectId,
+  };
 
   factory WagePayment.fromMap(Map<String, Object?> map) => WagePayment(
-        id: map['id'] as int?,
-        workerId: map['worker_id'] as int? ?? 0,
-        amount: (map['amount'] as num?)?.toDouble() ?? 0,
-        date: map['date'] as String? ?? '',
-        note: map['note'] as String? ?? '',
-        projectId: map['project_id'] as int?,
-        workerName: map['worker_name'] as String?,
-        projectName: map['project_name'] as String?,
-      );
+    id: map['id'] as int?,
+    workerId: map['worker_id'] as int? ?? 0,
+    amount: (map['amount'] as num?)?.toDouble() ?? 0,
+    date: map['date'] as String? ?? '',
+    note: map['note'] as String? ?? '',
+    projectId: map['project_id'] as int?,
+    workerName: map['worker_name'] as String?,
+    projectName: map['project_name'] as String?,
+  );
 }
 
 class WagePaymentPhoto {
@@ -572,14 +579,15 @@ class WagePaymentPhoto {
   }
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'wage_payment_id': wagePaymentId,
-        'path': path,
-        'caption': caption,
-        'taken_at': takenAt,
-      };
+    'id': id,
+    'wage_payment_id': wagePaymentId,
+    'path': path,
+    'caption': caption,
+    'taken_at': takenAt,
+  };
 
-  factory WagePaymentPhoto.fromMap(Map<String, Object?> map) => WagePaymentPhoto(
+  factory WagePaymentPhoto.fromMap(Map<String, Object?> map) =>
+      WagePaymentPhoto(
         id: map['id'] as int?,
         wagePaymentId: map['wage_payment_id'] as int? ?? 0,
         path: map['path'] as String? ?? '',
@@ -606,21 +614,21 @@ class ClientPayment {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'client_id': clientId,
-        'amount': amount,
-        'date': date,
-        'note': note,
-      };
+    'id': id,
+    'client_id': clientId,
+    'amount': amount,
+    'date': date,
+    'note': note,
+  };
 
   factory ClientPayment.fromMap(Map<String, Object?> map) => ClientPayment(
-        id: map['id'] as int?,
-        clientId: map['client_id'] as int? ?? 0,
-        amount: (map['amount'] as num?)?.toDouble() ?? 0,
-        date: map['date'] as String? ?? '',
-        note: map['note'] as String? ?? '',
-        clientName: map['client_name'] as String?,
-      );
+    id: map['id'] as int?,
+    clientId: map['client_id'] as int? ?? 0,
+    amount: (map['amount'] as num?)?.toDouble() ?? 0,
+    date: map['date'] as String? ?? '',
+    note: map['note'] as String? ?? '',
+    clientName: map['client_name'] as String?,
+  );
 }
 
 enum StockMaterial {
@@ -673,18 +681,18 @@ class Supplier {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'name': name,
-        'phone': phone,
-        'notes': notes,
-      };
+    'id': id,
+    'name': name,
+    'phone': phone,
+    'notes': notes,
+  };
 
   factory Supplier.fromMap(Map<String, Object?> map) => Supplier(
-        id: map['id'] as int?,
-        name: map['name'] as String? ?? '',
-        phone: map['phone'] as String? ?? '',
-        notes: map['notes'] as String? ?? '',
-      );
+    id: map['id'] as int?,
+    name: map['name'] as String? ?? '',
+    phone: map['phone'] as String? ?? '',
+    notes: map['notes'] as String? ?? '',
+  );
 }
 
 class MaterialItem {
@@ -725,107 +733,44 @@ class MaterialItem {
   String get displayName => name.isNotEmpty ? name : type.label;
 
   double get remaining =>
-      ((openingStock > 0 ? openingStock : qtyPurchased) - qtyUsed).clamp(0, double.infinity);
+      ((openingStock > 0 ? openingStock : qtyPurchased) - qtyUsed).clamp(
+        0,
+        double.infinity,
+      );
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'project_id': projectId,
-        'type': type.name,
-        'name': name,
-        'qty_purchased': qtyPurchased,
-        'qty_used': qtyUsed,
-        'unit': unit,
-        'cost': cost,
-        'opening_stock': openingStock,
-        'low_stock_alert': lowStockAlert,
-        'purchase_price': purchasePrice,
-        'supplier_id': supplierId,
-        'remarks': remarks,
-      };
+    'id': id,
+    'project_id': projectId,
+    'type': type.name,
+    'name': name,
+    'qty_purchased': qtyPurchased,
+    'qty_used': qtyUsed,
+    'unit': unit,
+    'cost': cost,
+    'opening_stock': openingStock,
+    'low_stock_alert': lowStockAlert,
+    'purchase_price': purchasePrice,
+    'supplier_id': supplierId,
+    'remarks': remarks,
+  };
 
   factory MaterialItem.fromMap(Map<String, Object?> map) => MaterialItem(
-        id: map['id'] as int?,
-        projectId: map['project_id'] as int?,
-        type: StockMaterial.fromString(map['type'] as String?),
-        name: map['name'] as String? ?? '',
-        qtyPurchased: (map['qty_purchased'] as num?)?.toDouble() ?? 0,
-        qtyUsed: (map['qty_used'] as num?)?.toDouble() ?? 0,
-        unit: map['unit'] as String? ?? '',
-        cost: (map['cost'] as num?)?.toDouble() ?? 0,
-        openingStock: (map['opening_stock'] as num?)?.toDouble() ?? 0,
-        lowStockAlert: (map['low_stock_alert'] as num?)?.toDouble() ?? 0,
-        purchasePrice: (map['purchase_price'] as num?)?.toDouble() ?? 0,
-        supplierId: map['supplier_id'] as int?,
-        remarks: map['remarks'] as String? ?? '',
-        projectName: map['project_name'] as String?,
-        supplierName: map['supplier_name'] as String?,
-      );
-}
-
-enum ExpenseCategory {
-  labour,
-  material,
-  transport,
-  misc;
-
-  String get label {
-    switch (this) {
-      case ExpenseCategory.labour:
-        return 'Labour';
-      case ExpenseCategory.material:
-        return 'Material';
-      case ExpenseCategory.transport:
-        return 'Transport';
-      case ExpenseCategory.misc:
-        return 'Miscellaneous';
-    }
-  }
-
-  static ExpenseCategory fromString(String? value) {
-    return ExpenseCategory.values.firstWhere(
-      (e) => e.name == (value ?? '').toLowerCase(),
-      orElse: () => ExpenseCategory.misc,
-    );
-  }
-}
-
-class Expense {
-  final int? id;
-  final int? projectId;
-  final ExpenseCategory category;
-  final double amount;
-  final String date;
-  final String note;
-  final String? projectName;
-
-  const Expense({
-    this.id,
-    this.projectId,
-    required this.category,
-    required this.amount,
-    required this.date,
-    this.note = '',
-    this.projectName,
-  });
-
-  Map<String, Object?> toMap() => {
-        'id': id,
-        'project_id': projectId,
-        'category': category.name,
-        'amount': amount,
-        'date': date,
-        'note': note,
-      };
-
-  factory Expense.fromMap(Map<String, Object?> map) => Expense(
-        id: map['id'] as int?,
-        projectId: map['project_id'] as int?,
-        category: ExpenseCategory.fromString(map['category'] as String?),
-        amount: (map['amount'] as num?)?.toDouble() ?? 0,
-        date: map['date'] as String? ?? '',
-        note: map['note'] as String? ?? '',
-        projectName: map['project_name'] as String?,
-      );
+    id: map['id'] as int?,
+    projectId: map['project_id'] as int?,
+    type: StockMaterial.fromString(map['type'] as String?),
+    name: map['name'] as String? ?? '',
+    qtyPurchased: (map['qty_purchased'] as num?)?.toDouble() ?? 0,
+    qtyUsed: (map['qty_used'] as num?)?.toDouble() ?? 0,
+    unit: map['unit'] as String? ?? '',
+    cost: (map['cost'] as num?)?.toDouble() ?? 0,
+    openingStock: (map['opening_stock'] as num?)?.toDouble() ?? 0,
+    lowStockAlert: (map['low_stock_alert'] as num?)?.toDouble() ?? 0,
+    purchasePrice: (map['purchase_price'] as num?)?.toDouble() ?? 0,
+    supplierId: map['supplier_id'] as int?,
+    remarks: map['remarks'] as String? ?? '',
+    projectName: map['project_name'] as String?,
+    supplierName: map['supplier_name'] as String?,
+  );
 }
 
 enum PaymentType {
@@ -861,25 +806,25 @@ class Payment {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'project_id': projectId,
-        'type': type.name,
-        'amount': amount,
-        'date': date,
-        'note': note,
-        'due_date': dueDate,
-      };
+    'id': id,
+    'project_id': projectId,
+    'type': type.name,
+    'amount': amount,
+    'date': date,
+    'note': note,
+    'due_date': dueDate,
+  };
 
   factory Payment.fromMap(Map<String, Object?> map) => Payment(
-        id: map['id'] as int?,
-        projectId: map['project_id'] as int? ?? 0,
-        type: PaymentType.fromString(map['type'] as String?),
-        amount: (map['amount'] as num?)?.toDouble() ?? 0,
-        date: map['date'] as String? ?? '',
-        note: map['note'] as String? ?? '',
-        dueDate: map['due_date'] as String?,
-        projectName: map['project_name'] as String?,
-      );
+    id: map['id'] as int?,
+    projectId: map['project_id'] as int? ?? 0,
+    type: PaymentType.fromString(map['type'] as String?),
+    amount: (map['amount'] as num?)?.toDouble() ?? 0,
+    date: map['date'] as String? ?? '',
+    note: map['note'] as String? ?? '',
+    dueDate: map['due_date'] as String?,
+    projectName: map['project_name'] as String?,
+  );
 }
 
 class Quotation {
@@ -896,18 +841,18 @@ class Quotation {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'title': title,
-        'created_at': createdAt,
-        'updated_at': updatedAt,
-      };
+    'id': id,
+    'title': title,
+    'created_at': createdAt,
+    'updated_at': updatedAt,
+  };
 
   factory Quotation.fromMap(Map<String, Object?> map) => Quotation(
-        id: map['id'] as int?,
-        title: map['title'] as String? ?? '',
-        createdAt: map['created_at'] as String? ?? '',
-        updatedAt: map['updated_at'] as String? ?? '',
-      );
+    id: map['id'] as int?,
+    title: map['title'] as String? ?? '',
+    createdAt: map['created_at'] as String? ?? '',
+    updatedAt: map['updated_at'] as String? ?? '',
+  );
 }
 
 class BillItem {
@@ -932,24 +877,24 @@ class BillItem {
   double get amount => qty * rate;
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'bill_id': billId,
-        'description': description,
-        'unit': unit,
-        'qty': qty,
-        'rate': rate,
-        'sort_order': sortOrder,
-      };
+    'id': id,
+    'bill_id': billId,
+    'description': description,
+    'unit': unit,
+    'qty': qty,
+    'rate': rate,
+    'sort_order': sortOrder,
+  };
 
   factory BillItem.fromMap(Map<String, Object?> map) => BillItem(
-        id: map['id'] as int?,
-        billId: map['bill_id'] as int?,
-        description: map['description'] as String? ?? '',
-        unit: map['unit'] as String? ?? '',
-        qty: (map['qty'] as num?)?.toDouble() ?? 0,
-        rate: (map['rate'] as num?)?.toDouble() ?? 0,
-        sortOrder: map['sort_order'] as int? ?? 0,
-      );
+    id: map['id'] as int?,
+    billId: map['bill_id'] as int?,
+    description: map['description'] as String? ?? '',
+    unit: map['unit'] as String? ?? '',
+    qty: (map['qty'] as num?)?.toDouble() ?? 0,
+    rate: (map['rate'] as num?)?.toDouble() ?? 0,
+    sortOrder: map['sort_order'] as int? ?? 0,
+  );
 
   BillItem copyWith({
     int? id,
@@ -959,16 +904,15 @@ class BillItem {
     double? qty,
     double? rate,
     int? sortOrder,
-  }) =>
-      BillItem(
-        id: id ?? this.id,
-        billId: billId ?? this.billId,
-        description: description ?? this.description,
-        unit: unit ?? this.unit,
-        qty: qty ?? this.qty,
-        rate: rate ?? this.rate,
-        sortOrder: sortOrder ?? this.sortOrder,
-      );
+  }) => BillItem(
+    id: id ?? this.id,
+    billId: billId ?? this.billId,
+    description: description ?? this.description,
+    unit: unit ?? this.unit,
+    qty: qty ?? this.qty,
+    rate: rate ?? this.rate,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
 }
 
 class Bill {
@@ -992,22 +936,24 @@ class Bill {
       items.fold<double>(0, (sum, item) => sum + item.amount);
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'name': name,
-        'note': note,
-        'created_at': createdAt,
-        'updated_at': updatedAt,
-      };
+    'id': id,
+    'name': name,
+    'note': note,
+    'created_at': createdAt,
+    'updated_at': updatedAt,
+  };
 
-  factory Bill.fromMap(Map<String, Object?> map, {List<BillItem> items = const []}) =>
-      Bill(
-        id: map['id'] as int?,
-        name: map['name'] as String? ?? '',
-        note: map['note'] as String? ?? '',
-        createdAt: map['created_at'] as String? ?? '',
-        updatedAt: map['updated_at'] as String? ?? '',
-        items: items,
-      );
+  factory Bill.fromMap(
+    Map<String, Object?> map, {
+    List<BillItem> items = const [],
+  }) => Bill(
+    id: map['id'] as int?,
+    name: map['name'] as String? ?? '',
+    note: map['note'] as String? ?? '',
+    createdAt: map['created_at'] as String? ?? '',
+    updatedAt: map['updated_at'] as String? ?? '',
+    items: items,
+  );
 
   Bill copyWith({
     int? id,
@@ -1016,15 +962,14 @@ class Bill {
     String? createdAt,
     String? updatedAt,
     List<BillItem>? items,
-  }) =>
-      Bill(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        note: note ?? this.note,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        items: items ?? this.items,
-      );
+  }) => Bill(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    items: items ?? this.items,
+  );
 }
 
 /// Admin-managed Cost of Construction line (key = label, value supports placeholders).
@@ -1045,12 +990,12 @@ class CostConstructionItem {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'label': label,
-        'value': value,
-        'sort_order': sortOrder,
-        'created_at': createdAt,
-      };
+    'id': id,
+    'label': label,
+    'value': value,
+    'sort_order': sortOrder,
+    'created_at': createdAt,
+  };
 
   factory CostConstructionItem.fromMap(Map<String, Object?> map) =>
       CostConstructionItem(
@@ -1116,20 +1061,20 @@ class SitePhoto {
   });
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'project_id': projectId,
-        'path': path,
-        'caption': caption,
-        'taken_at': takenAt,
-      };
+    'id': id,
+    'project_id': projectId,
+    'path': path,
+    'caption': caption,
+    'taken_at': takenAt,
+  };
 
   factory SitePhoto.fromMap(Map<String, Object?> map) => SitePhoto(
-        id: map['id'] as int?,
-        projectId: map['project_id'] as int? ?? 0,
-        path: map['path'] as String? ?? '',
-        caption: map['caption'] as String? ?? '',
-        takenAt: map['taken_at'] as String? ?? '',
-      );
+    id: map['id'] as int?,
+    projectId: map['project_id'] as int? ?? 0,
+    path: map['path'] as String? ?? '',
+    caption: map['caption'] as String? ?? '',
+    takenAt: map['taken_at'] as String? ?? '',
+  );
 }
 
 class AppSettings {
@@ -1175,7 +1120,6 @@ class DashboardStats {
   final int completedProjects;
   final double pendingPayments;
   final double totalReceived;
-  final double totalExpenses;
 
   const DashboardStats({
     this.totalProjects = 0,
@@ -1183,17 +1127,14 @@ class DashboardStats {
     this.completedProjects = 0,
     this.pendingPayments = 0,
     this.totalReceived = 0,
-    this.totalExpenses = 0,
   });
-
-  double get profitLoss => totalReceived - totalExpenses;
 }
 
 class DataOverview {
   final int workers;
   final int attendance;
   final int materials;
-  final int paymentsAndExpenses;
+  final int paymentsAndWages;
   final int sitePhotos;
   final int suppliers;
   final int projects;
@@ -1203,7 +1144,7 @@ class DataOverview {
     this.workers = 0,
     this.attendance = 0,
     this.materials = 0,
-    this.paymentsAndExpenses = 0,
+    this.paymentsAndWages = 0,
     this.sitePhotos = 0,
     this.suppliers = 0,
     this.projects = 0,

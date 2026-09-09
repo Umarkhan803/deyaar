@@ -8,7 +8,6 @@ import '../utils/formatters.dart';
 import '../widgets/app_header.dart';
 import '../widgets/quick_action_tile.dart';
 import 'clients_screen.dart';
-import 'expenses_screen.dart';
 import 'labour_screen.dart';
 import 'projects_screen.dart';
 import 'settings_screen.dart';
@@ -55,7 +54,6 @@ class DashboardScreen extends StatelessWidget {
     final cardBg = isDark ? const Color(0xFF1E252E) : AppColors.surface;
     final pendingBg = const Color(0xFFE53935);
     final deadlines = _upcomingDeadlines(app.projects);
-    final recentExpenses = app.expenses.take(5).toList();
 
     return RefreshIndicator(
       color: AppColors.primaryBlue,
@@ -69,17 +67,17 @@ class DashboardScreen extends StatelessWidget {
                 builder: (_) => const ProjectsScreen(focusSearch: true),
               ),
             ),
-            onSettings: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
+            onSettings: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
           const SizedBox(height: 28),
           Text(
             _greeting(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white70 : AppColors.slate,
-                ),
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white70 : AppColors.slate,
+            ),
           ),
           const SizedBox(height: 14),
           Row(
@@ -97,8 +95,8 @@ class DashboardScreen extends StatelessWidget {
                 child: Text(
                   'Dashboard Overview',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               Material(
@@ -107,9 +105,7 @@ class DashboardScreen extends StatelessWidget {
                 child: InkWell(
                   customBorder: const CircleBorder(),
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const SitePhotosScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const SitePhotosScreen()),
                   ),
                   child: const SizedBox(
                     width: 44,
@@ -176,9 +172,9 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 28),
           Text(
             'Quick Actions',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 14),
           SingleChildScrollView(
@@ -206,16 +202,6 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 QuickActionTile(
-                  icon: Icons.receipt_long_outlined,
-                  label: 'Expense',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ExpensesScreen(openAdd: true),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                QuickActionTile(
                   icon: Icons.engineering_outlined,
                   label: 'Labours',
                   onTap: () => Navigator.of(context).push(
@@ -229,9 +215,7 @@ class DashboardScreen extends StatelessWidget {
                   label: 'Site',
                   icon: Icons.apartment_outlined,
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const SitePhotosScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const SitePhotosScreen()),
                   ),
                 ),
               ],
@@ -242,9 +226,9 @@ class DashboardScreen extends StatelessWidget {
             children: [
               Text(
                 'Upcoming Deadlines',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               TextButton(
@@ -283,9 +267,11 @@ class DashboardScreen extends StatelessWidget {
             ...deadlines.map((p) {
               final end = DateTime.parse(p.expectedEnd);
               final today = DateTime.now();
-              final days = DateTime(end.year, end.month, end.day)
-                  .difference(DateTime(today.year, today.month, today.day))
-                  .inDays;
+              final days = DateTime(
+                end.year,
+                end.month,
+                end.day,
+              ).difference(DateTime(today.year, today.month, today.day)).inDays;
               final overdue = days < 0;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -315,12 +301,15 @@ class DashboardScreen extends StatelessWidget {
                       overdue
                           ? 'Overdue · ${Formatters.dateDisplay(p.expectedEnd)}'
                           : days == 0
-                              ? 'Due today · ${Formatters.dateDisplay(p.expectedEnd)}'
-                              : 'Due in $days days · ${Formatters.dateDisplay(p.expectedEnd)}',
+                          ? 'Due today · ${Formatters.dateDisplay(p.expectedEnd)}'
+                          : 'Due in $days days · ${Formatters.dateDisplay(p.expectedEnd)}',
                     ),
                     trailing: IconButton(
                       tooltip: 'Remove deadline',
-                      icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.danger,
+                      ),
                       onPressed: () => _deleteDeadline(context, p),
                     ),
                     onTap: () => openProjectEditor(context, project: p),
@@ -328,70 +317,6 @@ class DashboardScreen extends StatelessWidget {
                 ),
               );
             }),
-          const SizedBox(height: 24),
-          Text(
-            'Recent Expenses',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 10),
-          if (recentExpenses.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: isDark ? null : Border.all(color: AppColors.border),
-              ),
-              child: Text(
-                'No expenses yet.',
-                style: TextStyle(color: AppColors.textMuted(context)),
-              ),
-            )
-          else
-            ...recentExpenses.map(
-              (e) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Material(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          AppColors.primaryBlue.withValues(alpha: 0.15),
-                      child: const Icon(
-                        Icons.receipt_long_outlined,
-                        color: AppColors.primaryBlue,
-                      ),
-                    ),
-                    title: Text(
-                      e.category.label,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: Text(
-                      e.projectName ?? Formatters.dateDisplay(e.date),
-                    ),
-                    trailing: Text(
-                      Formatters.money(e.amount, currency: currency),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFFFF8A65),
-                      ),
-                    ),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ExpensesScreen(),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -402,9 +327,7 @@ class DashboardScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove deadline?'),
-        content: Text(
-          'Clear the expected end date for "${project.name}"?',
-        ),
+        content: Text('Clear the expected end date for "${project.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -422,8 +345,8 @@ class DashboardScreen extends StatelessWidget {
     );
     if (ok != true || !context.mounted) return;
     await context.read<AppProvider>().saveProject(
-          project.copyWith(expectedEnd: ''),
-        );
+      project.copyWith(expectedEnd: ''),
+    );
   }
 
   Future<void> _addDeadline(BuildContext context) async {
@@ -432,7 +355,8 @@ class DashboardScreen extends StatelessWidget {
         .where(
           (p) =>
               p.status != ProjectStatus.completed &&
-              (p.expectedEnd.isEmpty || DateTime.tryParse(p.expectedEnd) == null),
+              (p.expectedEnd.isEmpty ||
+                  DateTime.tryParse(p.expectedEnd) == null),
         )
         .toList();
     if (candidates.isEmpty) {
@@ -441,9 +365,9 @@ class DashboardScreen extends StatelessWidget {
           .where((p) => p.status != ProjectStatus.completed)
           .toList();
       if (open.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Create a project first')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Create a project first')));
         return;
       }
       await openProjectEditor(context, project: open.first);
@@ -556,20 +480,21 @@ class _OverviewCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: valueColor,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: valueColor,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: labelColor ??
-                          (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : AppColors.slate),
-                      fontWeight: FontWeight.w500,
-                    ),
+                  color:
+                      labelColor ??
+                      (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : AppColors.slate),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),

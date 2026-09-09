@@ -18,7 +18,6 @@ class AppProvider extends ChangeNotifier {
   List<Attendance> attendance = [];
   List<WagePayment> wagePayments = [];
   List<MaterialItem> materials = [];
-  List<Expense> expenses = [];
   List<Payment> payments = [];
   List<Payment> reminders = [];
   List<Supplier> suppliers = [];
@@ -26,9 +25,9 @@ class AppProvider extends ChangeNotifier {
   List<AdminMilestone> adminMilestones = [];
   List<CostConstructionItem> costConstructionItems = [];
   List<Bill> bills = [];
-  Map<String, double> monthlyExpenses = {};
 
-  ThemeMode get themeMode => AppTheme.themeModeFromString(settings.themeMode.name);
+  ThemeMode get themeMode =>
+      AppTheme.themeModeFromString(settings.themeMode.name);
 
   Future<void> init() async {
     loading = true;
@@ -71,7 +70,6 @@ class AppProvider extends ChangeNotifier {
     attendance = await repo.getAttendance();
     wagePayments = await repo.getWagePayments();
     materials = await repo.getMaterials();
-    expenses = await repo.getExpenses();
     payments = await repo.getPayments();
     reminders = await repo.getPaymentReminders();
     suppliers = await repo.getSuppliers();
@@ -79,14 +77,12 @@ class AppProvider extends ChangeNotifier {
     adminMilestones = await repo.getAdminMilestones();
     costConstructionItems = await repo.getCostConstructionItems();
     bills = await repo.getBills();
-    monthlyExpenses = await repo.monthlyExpensesLast6();
     notifyListeners();
   }
 
   Future<void> refreshDashboard() async {
     stats = await repo.getDashboardStats();
     reminders = await repo.getPaymentReminders();
-    monthlyExpenses = await repo.monthlyExpensesLast6();
     notifyListeners();
   }
 
@@ -116,17 +112,13 @@ class AppProvider extends ChangeNotifier {
     await repo.deleteProject(id);
     projects = await repo.getProjects();
     materials = await repo.getMaterials();
-    expenses = await repo.getExpenses();
     payments = await repo.getPayments();
     await refreshDashboard();
     notifyListeners();
   }
 
   Future<void> saveWorker(Worker w, {List<int>? projectIds}) async {
-    await repo.upsertWorker(
-      w,
-      projectIds: projectIds ?? w.assignedProjectIds,
-    );
+    await repo.upsertWorker(w, projectIds: projectIds ?? w.assignedProjectIds);
     workers = await repo.getWorkers();
     notifyListeners();
   }
@@ -173,7 +165,9 @@ class AppProvider extends ChangeNotifier {
     return id;
   }
 
-  Future<List<WagePaymentPhoto>> getWagePaymentPhotosForWorker(int workerId) async {
+  Future<List<WagePaymentPhoto>> getWagePaymentPhotosForWorker(
+    int workerId,
+  ) async {
     return await repo.getWagePaymentPhotosForWorker(workerId);
   }
 
@@ -254,20 +248,6 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<Bill?> getBill(int id) => repo.getBill(id);
-
-  Future<void> saveExpense(Expense e) async {
-    await repo.upsertExpense(e);
-    expenses = await repo.getExpenses();
-    await refreshDashboard();
-    notifyListeners();
-  }
-
-  Future<void> removeExpense(int id) async {
-    await repo.deleteExpense(id);
-    expenses = await repo.getExpenses();
-    await refreshDashboard();
-    notifyListeners();
-  }
 
   Future<void> savePayment(Payment p) async {
     await repo.upsertPayment(p);

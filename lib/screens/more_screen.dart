@@ -42,7 +42,7 @@ class MoreScreen extends StatelessWidget {
       ),
       _MoreItem(
         'Finance',
-        'Revenue, expenses and monthly chart',
+        'Revenue and pending payments',
         Icons.account_balance_outlined,
         const FinanceScreen(),
         AppColors.success,
@@ -96,9 +96,9 @@ class MoreScreen extends StatelessWidget {
       children: [
         Text(
           'All modules',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
         Text(
@@ -114,9 +114,9 @@ class MoreScreen extends StatelessWidget {
               subtitle: item.subtitle,
               icon: item.icon,
               accent: item.accent,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => item.screen),
-              ),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => item.screen)),
             ),
           ),
         ),
@@ -131,5 +131,11 @@ class _MoreItem {
   final IconData icon;
   final Widget screen;
   final Color accent;
-  const _MoreItem(this.title, this.subtitle, this.icon, this.screen, this.accent);
+  const _MoreItem(
+    this.title,
+    this.subtitle,
+    this.icon,
+    this.screen,
+    this.accent,
+  );
 }

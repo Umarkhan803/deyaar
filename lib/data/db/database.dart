@@ -17,7 +17,7 @@ class AppDatabase {
     final path = join(dbPath, 'deyaar_constructions.db');
     return openDatabase(
       path,
-      version: 10,
+      version: 11,
       onCreate: (db, version) async {
         await _createV1(db);
         await _upgradeToV2(db);
@@ -29,6 +29,7 @@ class AppDatabase {
         await _upgradeToV8(db);
         await _upgradeToV9(db);
         await _upgradeToV10(db);
+        await _upgradeToV11(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) await _upgradeToV2(db);
@@ -40,8 +41,22 @@ class AppDatabase {
         if (oldVersion < 8) await _upgradeToV8(db);
         if (oldVersion < 9) await _upgradeToV9(db);
         if (oldVersion < 10) await _upgradeToV10(db);
+        if (oldVersion < 11) await _upgradeToV11(db);
       },
     );
+  }
+
+  Future<void> _upgradeToV11(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS wage_payment_photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        wage_payment_id INTEGER NOT NULL,
+        path TEXT NOT NULL,
+        caption TEXT NOT NULL DEFAULT '',
+        taken_at TEXT NOT NULL,
+        FOREIGN KEY (wage_payment_id) REFERENCES wage_payments(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   Future<void> _createV1(Database db) async {
@@ -173,20 +188,44 @@ class AppDatabase {
       } catch (_) {}
     }
 
-    await tryExec("ALTER TABLE projects ADD COLUMN location TEXT NOT NULL DEFAULT ''");
-    await tryExec("ALTER TABLE workers ADD COLUMN phone TEXT NOT NULL DEFAULT ''");
-    await tryExec("ALTER TABLE workers ADD COLUMN trade TEXT NOT NULL DEFAULT ''");
-    await tryExec("ALTER TABLE workers ADD COLUMN experience TEXT NOT NULL DEFAULT ''");
-    await tryExec("ALTER TABLE workers ADD COLUMN address TEXT NOT NULL DEFAULT ''");
-    await tryExec("ALTER TABLE workers ADD COLUMN joining_date TEXT NOT NULL DEFAULT ''");
-    await tryExec("ALTER TABLE attendance ADD COLUMN status TEXT NOT NULL DEFAULT 'present'");
+    await tryExec(
+      "ALTER TABLE projects ADD COLUMN location TEXT NOT NULL DEFAULT ''",
+    );
+    await tryExec(
+      "ALTER TABLE workers ADD COLUMN phone TEXT NOT NULL DEFAULT ''",
+    );
+    await tryExec(
+      "ALTER TABLE workers ADD COLUMN trade TEXT NOT NULL DEFAULT ''",
+    );
+    await tryExec(
+      "ALTER TABLE workers ADD COLUMN experience TEXT NOT NULL DEFAULT ''",
+    );
+    await tryExec(
+      "ALTER TABLE workers ADD COLUMN address TEXT NOT NULL DEFAULT ''",
+    );
+    await tryExec(
+      "ALTER TABLE workers ADD COLUMN joining_date TEXT NOT NULL DEFAULT ''",
+    );
+    await tryExec(
+      "ALTER TABLE attendance ADD COLUMN status TEXT NOT NULL DEFAULT 'present'",
+    );
     await tryExec('ALTER TABLE wage_payments ADD COLUMN project_id INTEGER');
-    await tryExec("ALTER TABLE materials ADD COLUMN name TEXT NOT NULL DEFAULT ''");
-    await tryExec('ALTER TABLE materials ADD COLUMN opening_stock REAL NOT NULL DEFAULT 0');
-    await tryExec('ALTER TABLE materials ADD COLUMN low_stock_alert REAL NOT NULL DEFAULT 0');
-    await tryExec('ALTER TABLE materials ADD COLUMN purchase_price REAL NOT NULL DEFAULT 0');
+    await tryExec(
+      "ALTER TABLE materials ADD COLUMN name TEXT NOT NULL DEFAULT ''",
+    );
+    await tryExec(
+      'ALTER TABLE materials ADD COLUMN opening_stock REAL NOT NULL DEFAULT 0',
+    );
+    await tryExec(
+      'ALTER TABLE materials ADD COLUMN low_stock_alert REAL NOT NULL DEFAULT 0',
+    );
+    await tryExec(
+      'ALTER TABLE materials ADD COLUMN purchase_price REAL NOT NULL DEFAULT 0',
+    );
     await tryExec('ALTER TABLE materials ADD COLUMN supplier_id INTEGER');
-    await tryExec("ALTER TABLE materials ADD COLUMN remarks TEXT NOT NULL DEFAULT ''");
+    await tryExec(
+      "ALTER TABLE materials ADD COLUMN remarks TEXT NOT NULL DEFAULT ''",
+    );
 
     await tryExec('''
       CREATE TABLE IF NOT EXISTS project_milestones (
@@ -208,16 +247,14 @@ class AppDatabase {
       )
     ''');
 
-    await db.insert(
-      'settings',
-      {'key': 'theme_mode', 'value': 'system'},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
-    await db.insert(
-      'settings',
-      {'key': 'biometric_enabled', 'value': '0'},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('settings', {
+      'key': 'theme_mode',
+      'value': 'system',
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('settings', {
+      'key': 'biometric_enabled',
+      'value': '0',
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
     // Backfill attendance status from present flag
     await tryExec(
@@ -279,7 +316,8 @@ class AppDatabase {
       )
     ''');
 
-    final count = Sqflite.firstIntValue(
+    final count =
+        Sqflite.firstIntValue(
           await db.rawQuery('SELECT COUNT(*) FROM admin_milestones'),
         ) ??
         0;
@@ -333,28 +371,17 @@ class AppDatabase {
       )
     ''');
 
-    final count = Sqflite.firstIntValue(
+    final count =
+        Sqflite.firstIntValue(
           await db.rawQuery('SELECT COUNT(*) FROM cost_construction_items'),
         ) ??
         0;
     if (count == 0) {
       const seeds = [
-        (
-          'Total covered Area of SF (as per working plan)',
-          '600 sft',
-        ),
-        (
-          'Covered Area Rate for Framed structure for SF',
-          '600 sft',
-        ),
-        (
-          'Cost of Construction /sft',
-          'Rs. 2200/-',
-        ),
-        (
-          'Total cost of construction',
-          'Rs. 13,20,000/-',
-        ),
+        ('Total covered Area of SF (as per working plan)', '600 sft'),
+        ('Covered Area Rate for Framed structure for SF', '600 sft'),
+        ('Cost of Construction /sft', 'Rs. 2200/-'),
+        ('Total cost of construction', 'Rs. 13,20,000/-'),
       ];
       var i = 0;
       for (final s in seeds) {
@@ -405,7 +432,9 @@ class AppDatabase {
       } catch (_) {}
     }
 
-    await tryExec("ALTER TABLE workers ADD COLUMN contract_amount REAL NOT NULL DEFAULT 0");
+    await tryExec(
+      "ALTER TABLE workers ADD COLUMN contract_amount REAL NOT NULL DEFAULT 0",
+    );
   }
 
   Future<void> _upgradeToV9(Database db) async {
@@ -415,7 +444,9 @@ class AppDatabase {
       } catch (_) {}
     }
 
-    await tryExec("ALTER TABLE workers ADD COLUMN wage_type TEXT NOT NULL DEFAULT 'daily'");
+    await tryExec(
+      "ALTER TABLE workers ADD COLUMN wage_type TEXT NOT NULL DEFAULT 'daily'",
+    );
   }
 
   Future<void> _upgradeToV10(Database db) async {

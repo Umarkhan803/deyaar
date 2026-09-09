@@ -13,7 +13,9 @@ class AppRepository {
   Future<AppSettings> getSettings() async {
     final db = await _db.database;
     final rows = await db.query('settings');
-    final map = {for (final r in rows) r['key'] as String: r['value'] as String};
+    final map = {
+      for (final r in rows) r['key'] as String: r['value'] as String,
+    };
     return AppSettings(
       companyName: map['company_name'] ?? 'Deyaar Constructions',
       pinHash: map['pin_hash'],
@@ -26,15 +28,16 @@ class AppRepository {
 
   Future<void> _setSetting(String key, String value) async {
     final db = await _db.database;
-    await db.insert(
-      'settings',
-      {'key': key, 'value': value},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('settings', {
+      'key': key,
+      'value': value,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> updateCompanyName(String name) => _setSetting('company_name', name);
-  Future<void> updateCurrency(String currency) => _setSetting('currency', currency);
+  Future<void> updateCompanyName(String name) =>
+      _setSetting('company_name', name);
+  Future<void> updateCurrency(String currency) =>
+      _setSetting('currency', currency);
   Future<void> updateThemeMode(AppThemePreference mode) =>
       _setSetting('theme_mode', mode.name);
   Future<void> updateBiometricEnabled(bool enabled) =>
@@ -42,7 +45,8 @@ class AppRepository {
 
   String hashPin(String pin) => sha256.convert(utf8.encode(pin)).toString();
 
-  Future<void> setPin(String pin) async => _setSetting('pin_hash', hashPin(pin));
+  Future<void> setPin(String pin) async =>
+      _setSetting('pin_hash', hashPin(pin));
 
   Future<void> clearPin() async {
     final db = await _db.database;
@@ -100,12 +104,15 @@ class AppRepository {
 
   Future<Project?> getProject(int id) async {
     final db = await _db.database;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT p.*, c.name AS client_name
       FROM projects p
       LEFT JOIN clients c ON c.id = p.client_id
       WHERE p.id = ?
-    ''', [id]);
+    ''',
+      [id],
+    );
     if (rows.isEmpty) return null;
     return Project.fromMap(rows.first);
   }
@@ -140,7 +147,8 @@ class AppRepository {
     final db = await _db.database;
     final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
     if (m.id == null) {
-      final maxOrder = Sqflite.firstIntValue(
+      final maxOrder =
+          Sqflite.firstIntValue(
             await db.rawQuery(
               'SELECT COALESCE(MAX(sort_order), -1) FROM admin_milestones',
             ),
@@ -160,8 +168,9 @@ class AppRepository {
       whereArgs: [m.id],
       limit: 1,
     );
-    final oldTitle =
-        existing.isEmpty ? m.title : (existing.first['title'] as String? ?? m.title);
+    final oldTitle = existing.isEmpty
+        ? m.title
+        : (existing.first['title'] as String? ?? m.title);
     await db.update(
       'admin_milestones',
       {'title': m.title, 'sort_order': m.sortOrder},
@@ -200,12 +209,16 @@ class AppRepository {
     }
   }
 
-  Future<void> _appendMilestoneToAllProjects(String title, int sortOrder) async {
+  Future<void> _appendMilestoneToAllProjects(
+    String title,
+    int sortOrder,
+  ) async {
     final db = await _db.database;
     final projects = await db.query('projects', columns: ['id']);
     for (final p in projects) {
       final projectId = p['id'] as int;
-      final exists = Sqflite.firstIntValue(
+      final exists =
+          Sqflite.firstIntValue(
             await db.rawQuery(
               'SELECT COUNT(*) FROM project_milestones WHERE project_id = ? AND title = ?',
               [projectId, title],
@@ -232,10 +245,13 @@ class AppRepository {
 
   Future<void> seedMilestonesForProject(int projectId) async {
     final db = await _db.database;
-    final existing = Sqflite.firstIntValue(await db.rawQuery(
-          'SELECT COUNT(*) FROM project_milestones WHERE project_id = ?',
-          [projectId],
-        )) ??
+    final existing =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM project_milestones WHERE project_id = ?',
+            [projectId],
+          ),
+        ) ??
         0;
     if (existing > 0) {
       await ensureProjectHasAdminMilestones(projectId);
@@ -330,7 +346,11 @@ class AppRepository {
 
   Future<void> setWorkerProjects(int workerId, List<int> projectIds) async {
     final db = await _db.database;
-    await db.delete('worker_projects', where: 'worker_id = ?', whereArgs: [workerId]);
+    await db.delete(
+      'worker_projects',
+      where: 'worker_id = ?',
+      whereArgs: [workerId],
+    );
     for (final pid in projectIds.toSet()) {
       await db.insert('worker_projects', {
         'worker_id': workerId,
@@ -341,13 +361,16 @@ class AppRepository {
 
   Future<List<Worker>> getWorkersForProject(int projectId) async {
     final db = await _db.database;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT w.*
       FROM workers w
       INNER JOIN worker_projects wp ON wp.worker_id = w.id
       WHERE wp.project_id = ?
       ORDER BY w.name COLLATE NOCASE
-    ''', [projectId]);
+    ''',
+      [projectId],
+    );
     return rows.map(Worker.fromMap).toList();
   }
 
@@ -440,12 +463,15 @@ class AppRepository {
 
   Future<double> wagesBetween(String startIso, String endIso) async {
     final db = await _db.database;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT COALESCE(SUM(wage), 0) AS total
       FROM attendance
       WHERE date >= ? AND date <= ?
         AND status IN ('present', 'half')
-    ''', [startIso, endIso]);
+    ''',
+      [startIso, endIso],
+    );
     return (rows.first['total'] as num?)?.toDouble() ?? 0;
   }
 
@@ -475,7 +501,12 @@ class AppRepository {
     final db = await _db.database;
     final map = item.toMap()..remove('id');
     if (item.id == null) return db.insert('wage_payments', map);
-    await db.update('wage_payments', map, where: 'id = ?', whereArgs: [item.id]);
+    await db.update(
+      'wage_payments',
+      map,
+      where: 'id = ?',
+      whereArgs: [item.id],
+    );
     return item.id!;
   }
 
@@ -517,21 +548,43 @@ class AppRepository {
       'wage_payment_photos',
       where: 'wage_payment_id = ?',
       whereArgs: [wagePaymentId],
-      orderBy: 'takenAt DESC',
+      orderBy: 'taken_at DESC',
     );
     return rows.map(WagePaymentPhoto.fromMap).toList();
   }
 
-  Future<List<WagePaymentPhoto>> getWagePaymentPhotosForWorker(int workerId) async {
+  /// All wage-payment photos for a single worker in one JOIN query, newest first.
+  /// Also includes unlinked photos (wage_payment_id = 0) whose path starts with
+  /// the worker-scoped prefix 'w{workerId}_'.
+  Future<List<WagePaymentPhoto>> getWagePaymentPhotosForWorker(
+    int workerId,
+  ) async {
     final db = await _db.database;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT wpp.*
       FROM wage_payment_photos wpp
       JOIN wage_payments wp ON wpp.wage_payment_id = wp.id
-      WHERE wp.workerId = ?
-      ORDER BY wpp.takenAt DESC
-    ''', [workerId]);
-    return rows.map(WagePaymentPhoto.fromMap).toList();
+      WHERE wp.worker_id = ?
+      ORDER BY wpp.taken_at DESC
+    ''',
+      [workerId],
+    );
+    // Also fetch unlinked (wage_payment_id = 0) scoped to this worker by path prefix.
+    final prefix = 'w${workerId}_';
+    final unlinkedRows = await db.rawQuery('''
+      SELECT * FROM wage_payment_photos
+      WHERE wage_payment_id = 0
+      ORDER BY taken_at DESC
+    ''');
+    final unlinked = unlinkedRows.map(WagePaymentPhoto.fromMap).where((ph) {
+      final name = ph.path.split('/').last.split('\\').last;
+      return name.startsWith(prefix);
+    }).toList();
+    final linked = rows.map(WagePaymentPhoto.fromMap).toList();
+    final all = [...linked, ...unlinked];
+    all.sort((a, b) => b.takenAt.compareTo(a.takenAt));
+    return all;
   }
 
   Future<List<Supplier>> getSuppliers() async {
@@ -579,54 +632,6 @@ class AppRepository {
     await db.delete('materials', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List<Expense>> getExpenses({int? projectId}) async {
-    final db = await _db.database;
-    final rows = await db.rawQuery('''
-      SELECT e.*, p.name AS project_name
-      FROM expenses e
-      LEFT JOIN projects p ON p.id = e.project_id
-      ${projectId != null ? 'WHERE e.project_id = $projectId' : ''}
-      ORDER BY e.date DESC
-    ''');
-    return rows.map(Expense.fromMap).toList();
-  }
-
-  Future<Map<String, double>> monthlyExpensesLast6() async {
-    final db = await _db.database;
-    final now = DateTime.now();
-    final result = <String, double>{};
-    for (var i = 5; i >= 0; i--) {
-      final d = DateTime(now.year, now.month - i, 1);
-      final key = DateFormat('yyyy-MM').format(d);
-      result[key] = 0;
-    }
-    final rows = await db.rawQuery('''
-      SELECT substr(date, 1, 7) AS ym, COALESCE(SUM(amount), 0) AS total
-      FROM expenses
-      GROUP BY ym
-    ''');
-    for (final r in rows) {
-      final ym = r['ym'] as String?;
-      if (ym != null && result.containsKey(ym)) {
-        result[ym] = (r['total'] as num?)?.toDouble() ?? 0;
-      }
-    }
-    return result;
-  }
-
-  Future<int> upsertExpense(Expense item) async {
-    final db = await _db.database;
-    final map = item.toMap()..remove('id');
-    if (item.id == null) return db.insert('expenses', map);
-    await db.update('expenses', map, where: 'id = ?', whereArgs: [item.id]);
-    return item.id!;
-  }
-
-  Future<void> deleteExpense(int id) async {
-    final db = await _db.database;
-    await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
-  }
-
   Future<List<Payment>> getPayments({int? projectId}) async {
     final db = await _db.database;
     final rows = await db.rawQuery('''
@@ -642,13 +647,16 @@ class AppRepository {
   Future<List<Payment>> getPaymentReminders() async {
     final db = await _db.database;
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT pay.*, p.name AS project_name
       FROM payments pay
       LEFT JOIN projects p ON p.id = pay.project_id
       WHERE pay.due_date IS NOT NULL AND pay.due_date != '' AND pay.due_date <= ?
       ORDER BY pay.due_date ASC
-    ''', [today]);
+    ''',
+      [today],
+    );
     return rows.map(Payment.fromMap).toList();
   }
 
@@ -667,10 +675,13 @@ class AppRepository {
 
   Future<double> getReceivedForProject(int projectId) async {
     final db = await _db.database;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT COALESCE(SUM(amount), 0) AS total
       FROM payments WHERE project_id = ?
-    ''', [projectId]);
+    ''',
+      [projectId],
+    );
     return (rows.first['total'] as num?)?.toDouble() ?? 0;
   }
 
@@ -732,7 +743,10 @@ class AppRepository {
   // ---------- Quotations ----------
   Future<List<Quotation>> getQuotations() async {
     final db = await _db.database;
-    final rows = await db.query('quotations', orderBy: 'created_at DESC, id DESC');
+    final rows = await db.query(
+      'quotations',
+      orderBy: 'created_at DESC, id DESC',
+    );
     return rows.map(Quotation.fromMap).toList();
   }
 
@@ -785,7 +799,8 @@ class AppRepository {
     final db = await _db.database;
     final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
     if (item.id == null) {
-      final maxOrder = Sqflite.firstIntValue(
+      final maxOrder =
+          Sqflite.firstIntValue(
             await db.rawQuery(
               'SELECT COALESCE(MAX(sort_order), -1) FROM cost_construction_items',
             ),
@@ -800,11 +815,7 @@ class AppRepository {
     }
     await db.update(
       'cost_construction_items',
-      {
-        'label': item.label,
-        'value': item.value,
-        'sort_order': item.sortOrder,
-      },
+      {'label': item.label, 'value': item.value, 'sort_order': item.sortOrder},
       where: 'id = ?',
       whereArgs: [item.id],
     );
@@ -813,7 +824,11 @@ class AppRepository {
 
   Future<void> deleteCostConstructionItem(int id) async {
     final db = await _db.database;
-    await db.delete('cost_construction_items', where: 'id = ?', whereArgs: [id]);
+    await db.delete(
+      'cost_construction_items',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   // ---------- Bills (work summary) ----------
@@ -864,15 +879,15 @@ class AppRepository {
         billId = bill.id!;
         await txn.update(
           'bills',
-          {
-            'name': bill.name,
-            'note': bill.note,
-            'updated_at': now,
-          },
+          {'name': bill.name, 'note': bill.note, 'updated_at': now},
           where: 'id = ?',
           whereArgs: [billId],
         );
-        await txn.delete('bill_items', where: 'bill_id = ?', whereArgs: [billId]);
+        await txn.delete(
+          'bill_items',
+          where: 'bill_id = ?',
+          whereArgs: [billId],
+        );
       }
       for (var i = 0; i < bill.items.length; i++) {
         final item = bill.items[i];
@@ -910,43 +925,35 @@ class AppRepository {
     final received = await db.rawQuery(
       'SELECT COALESCE(SUM(amount), 0) AS total FROM payments',
     );
-    final expenses = await db.rawQuery(
-      'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses',
-    );
-    final wage = await db.rawQuery(
-      'SELECT COALESCE(SUM(amount), 0) AS total FROM wage_payments',
-    );
-    final material = await db.rawQuery(
-      'SELECT COALESCE(SUM(cost), 0) AS total FROM materials',
-    );
     final contractTotal = (contract.first['total'] as num?)?.toDouble() ?? 0;
     final receivedTotal = (received.first['total'] as num?)?.toDouble() ?? 0;
-    final expenseTotal = (expenses.first['total'] as num?)?.toDouble() ?? 0;
-    final wageTotal = (wage.first['total'] as num?)?.toDouble() ?? 0;
-    final materialTotal = (material.first['total'] as num?)?.toDouble() ?? 0;
 
     return DashboardStats(
       totalProjects: (projects.first['total'] as int?) ?? 0,
       ongoingProjects: (projects.first['ongoing'] as int?) ?? 0,
       completedProjects: (projects.first['completed'] as int?) ?? 0,
-      pendingPayments: (contractTotal - receivedTotal).clamp(0, double.infinity),
+      pendingPayments: (contractTotal - receivedTotal).clamp(
+        0,
+        double.infinity,
+      ),
       totalReceived: receivedTotal,
-      totalExpenses: expenseTotal + wageTotal + materialTotal,
     );
   }
 
   Future<DataOverview> getDataOverview() async {
     final db = await _db.database;
     Future<int> count(String table) async =>
-        Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM $table')) ?? 0;
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM $table'),
+        ) ??
+        0;
     final payments = await count('payments');
-    final expenses = await count('expenses');
     final wages = await count('wage_payments');
     return DataOverview(
       workers: await count('workers'),
       attendance: await count('attendance'),
       materials: await count('materials'),
-      paymentsAndExpenses: payments + expenses + wages,
+      paymentsAndWages: payments + wages,
       sitePhotos: await count('site_photos'),
       suppliers: await count('suppliers'),
       projects: await count('projects'),
@@ -984,7 +991,8 @@ class AppRepository {
       FROM materials GROUP BY type
     ''');
     return {
-      for (final r in rows) (r['type'] as String): (r['used'] as num?)?.toDouble() ?? 0
+      for (final r in rows)
+        (r['type'] as String): (r['used'] as num?)?.toDouble() ?? 0,
     };
   }
 
@@ -1001,23 +1009,14 @@ class AppRepository {
     return w > 0 ? w : a;
   }
 
-  Future<Map<String, double>> expensesByCategory() async {
-    final db = await _db.database;
-    final rows = await db.rawQuery('''
-      SELECT category, COALESCE(SUM(amount), 0) AS total
-      FROM expenses GROUP BY category
-    ''');
-    return {
-      for (final r in rows) (r['category'] as String): (r['total'] as num?)?.toDouble() ?? 0
-    };
-  }
-
   Future<({int clients, int workers})> importCsvRows({
     required List<List<dynamic>> rows,
     required String type,
   }) async {
     if (rows.isEmpty) return (clients: 0, workers: 0);
-    final header = rows.first.map((e) => e.toString().trim().toLowerCase()).toList();
+    final header = rows.first
+        .map((e) => e.toString().trim().toLowerCase())
+        .toList();
     var clients = 0;
     var workers = 0;
     for (var i = 1; i < rows.length; i++) {
@@ -1028,30 +1027,48 @@ class AppRepository {
         return row[idx].toString().trim();
       }
 
-      if (type == 'clients' || header.contains('client_name') || header.contains('name') && header.contains('phone') && header.contains('contract_value')) {
-        final name = cell('client_name').isNotEmpty ? cell('client_name') : cell('name');
+      if (type == 'clients' ||
+          header.contains('client_name') ||
+          header.contains('name') &&
+              header.contains('phone') &&
+              header.contains('contract_value')) {
+        final name = cell('client_name').isNotEmpty
+            ? cell('client_name')
+            : cell('name');
         if (name.isEmpty) continue;
-        await upsertClient(Client(
-          name: name,
-          phone: cell('phone'),
-          location: cell('location'),
-          contractValue: double.tryParse(cell('contract_value')) ?? 0,
-          notes: cell('notes'),
-        ));
+        await upsertClient(
+          Client(
+            name: name,
+            phone: cell('phone'),
+            location: cell('location'),
+            contractValue: double.tryParse(cell('contract_value')) ?? 0,
+            notes: cell('notes'),
+          ),
+        );
         clients++;
       } else {
         final name = cell('name');
         if (name.isEmpty) continue;
-        await upsertWorker(Worker(
-          name: name,
-          phone: cell('phone').isNotEmpty ? cell('phone') : cell('number'),
-          trade: cell('trade'),
-          dailyWageDefault: double.tryParse(cell('daily_wages').isNotEmpty ? cell('daily_wages') : cell('daily_wage')) ?? 0,
-          experience: cell('experience'),
-          address: cell('address'),
-          notes: cell('notes'),
-          joiningDate: cell('joining_date').isNotEmpty ? cell('joining_date') : DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        ));
+        await upsertWorker(
+          Worker(
+            name: name,
+            phone: cell('phone').isNotEmpty ? cell('phone') : cell('number'),
+            trade: cell('trade'),
+            dailyWageDefault:
+                double.tryParse(
+                  cell('daily_wages').isNotEmpty
+                      ? cell('daily_wages')
+                      : cell('daily_wage'),
+                ) ??
+                0,
+            experience: cell('experience'),
+            address: cell('address'),
+            notes: cell('notes'),
+            joiningDate: cell('joining_date').isNotEmpty
+                ? cell('joining_date')
+                : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          ),
+        );
         workers++;
       }
     }
@@ -1062,142 +1079,157 @@ class AppRepository {
     final settings = await getSettings();
     if (settings.demoSeeded) return;
     final db = await _db.database;
-    final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM clients')) ?? 0;
+    final count =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM clients'),
+        ) ??
+        0;
     if (count > 0) {
       await _setSetting('demo_seeded', '1');
       return;
     }
 
-    final clientId = await upsertClient(const Client(
-      name: 'Al Noor Developers',
-      phone: '+974 5555 1234',
-      location: 'Lusail, Doha',
-      contractValue: 850000,
-      notes: 'Villa complex Phase 1',
-    ));
-    final projectId = await upsertProject(Project(
-      clientId: clientId,
-      name: 'Lusail Villa Block A',
-      location: 'Lusail, Doha',
-      startDate: '2026-01-15',
-      expectedEnd: '2026-09-30',
-      progress: 42,
-      status: ProjectStatus.ongoing,
-    ));
-    await upsertProject(const Project(
-      name: 'Warehouse Fit-out',
-      location: 'Industrial Area',
-      startDate: '2025-08-01',
-      expectedEnd: '2025-12-20',
-      progress: 100,
-      status: ProjectStatus.completed,
-    ));
+    final clientId = await upsertClient(
+      const Client(
+        name: 'Al Noor Developers',
+        phone: '+974 5555 1234',
+        location: 'Lusail, Doha',
+        contractValue: 850000,
+        notes: 'Villa complex Phase 1',
+      ),
+    );
+    final projectId = await upsertProject(
+      Project(
+        clientId: clientId,
+        name: 'Lusail Villa Block A',
+        location: 'Lusail, Doha',
+        startDate: '2026-01-15',
+        expectedEnd: '2026-09-30',
+        progress: 42,
+        status: ProjectStatus.ongoing,
+      ),
+    );
+    await upsertProject(
+      const Project(
+        name: 'Warehouse Fit-out',
+        location: 'Industrial Area',
+        startDate: '2025-08-01',
+        expectedEnd: '2025-12-20',
+        progress: 100,
+        status: ProjectStatus.completed,
+      ),
+    );
 
-    final workerId = await upsertWorker(Worker(
-      name: 'Ravi Kumar',
-      phone: '9876543210',
-      trade: 'Mason',
-      dailyWageDefault: 180,
-      experience: '5 years',
-      joiningDate: '2026-01-01',
-      wageType: WageType.daily,
-    ));
-    await upsertWorker(Worker(
-      name: 'Ahmed Hassan',
-      phone: '9876501234',
-      trade: 'Foreman',
-      dailyWageDefault: 200,
-      experience: '8 years',
-      joiningDate: '2026-01-01',
-      wageType: WageType.daily,
-    ));
+    final workerId = await upsertWorker(
+      Worker(
+        name: 'Ravi Kumar',
+        phone: '9876543210',
+        trade: 'Mason',
+        dailyWageDefault: 180,
+        experience: '5 years',
+        joiningDate: '2026-01-01',
+        wageType: WageType.daily,
+      ),
+    );
+    await upsertWorker(
+      Worker(
+        name: 'Ahmed Hassan',
+        phone: '9876501234',
+        trade: 'Foreman',
+        dailyWageDefault: 200,
+        experience: '8 years',
+        joiningDate: '2026-01-01',
+        wageType: WageType.daily,
+      ),
+    );
 
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    await upsertAttendance(Attendance(
-      workerId: workerId,
-      projectId: projectId,
-      date: today,
-      status: AttendanceStatus.present,
-      wage: 180,
-    ));
-    await upsertWagePayment(WagePayment(
-      workerId: workerId,
-      amount: 3600,
-      date: today,
-      note: 'Weekly wages',
-    ));
+    await upsertAttendance(
+      Attendance(
+        workerId: workerId,
+        projectId: projectId,
+        date: today,
+        status: AttendanceStatus.present,
+        wage: 180,
+      ),
+    );
+    await upsertWagePayment(
+      WagePayment(
+        workerId: workerId,
+        amount: 3600,
+        date: today,
+        note: 'Weekly wages',
+      ),
+    );
 
-    final supplierId = await upsertSupplier(const Supplier(
-      name: 'Gulf Building Supplies',
-      phone: '44441234',
-      notes: 'Cement & steel',
-    ));
+    final supplierId = await upsertSupplier(
+      const Supplier(
+        name: 'Gulf Building Supplies',
+        phone: '44441234',
+        notes: 'Cement & steel',
+      ),
+    );
 
-    await upsertMaterial(MaterialItem(
-      projectId: projectId,
-      type: StockMaterial.cement,
-      name: 'OPC 53',
-      qtyPurchased: 200,
-      qtyUsed: 85,
-      unit: 'bags',
-      cost: 12000,
-      openingStock: 200,
-      purchasePrice: 60,
-      supplierId: supplierId,
-    ));
-    await upsertMaterial(MaterialItem(
-      projectId: projectId,
-      type: StockMaterial.steel,
-      name: 'TMT Bars',
-      qtyPurchased: 15,
-      qtyUsed: 6,
-      unit: 'tons',
-      cost: 45000,
-      openingStock: 15,
-      purchasePrice: 3000,
-      supplierId: supplierId,
-    ));
-    await upsertMaterial(MaterialItem(
-      projectId: projectId,
-      type: StockMaterial.bricks,
-      qtyPurchased: 10000,
-      qtyUsed: 4200,
-      unit: 'pcs',
-      cost: 8000,
-      openingStock: 10000,
-      purchasePrice: 0.8,
-    ));
+    await upsertMaterial(
+      MaterialItem(
+        projectId: projectId,
+        type: StockMaterial.cement,
+        name: 'OPC 53',
+        qtyPurchased: 200,
+        qtyUsed: 85,
+        unit: 'bags',
+        cost: 12000,
+        openingStock: 200,
+        purchasePrice: 60,
+        supplierId: supplierId,
+      ),
+    );
+    await upsertMaterial(
+      MaterialItem(
+        projectId: projectId,
+        type: StockMaterial.steel,
+        name: 'TMT Bars',
+        qtyPurchased: 15,
+        qtyUsed: 6,
+        unit: 'tons',
+        cost: 45000,
+        openingStock: 15,
+        purchasePrice: 3000,
+        supplierId: supplierId,
+      ),
+    );
+    await upsertMaterial(
+      MaterialItem(
+        projectId: projectId,
+        type: StockMaterial.bricks,
+        qtyPurchased: 10000,
+        qtyUsed: 4200,
+        unit: 'pcs',
+        cost: 8000,
+        openingStock: 10000,
+        purchasePrice: 0.8,
+      ),
+    );
 
-    await upsertExpense(Expense(
-      projectId: projectId,
-      category: ExpenseCategory.transport,
-      amount: 1500,
-      date: today,
-      note: 'Material delivery',
-    ));
-    await upsertExpense(Expense(
-      projectId: projectId,
-      category: ExpenseCategory.misc,
-      amount: 400,
-      date: today,
-      note: 'Site utilities',
-    ));
-
-    await upsertPayment(Payment(
-      projectId: projectId,
-      type: PaymentType.advance,
-      amount: 200000,
-      date: '2026-01-20',
-      note: 'Mobilization advance',
-    ));
-    await upsertPayment(Payment(
-      projectId: projectId,
-      type: PaymentType.receipt,
-      amount: 150000,
-      date: '2026-03-01',
-      note: 'Milestone 1',
-      dueDate: today,
-    ));
+    await upsertPayment(
+      Payment(
+        projectId: projectId,
+        type: PaymentType.advance,
+        amount: 200000,
+        date: '2026-01-20',
+        note: 'Mobilization advance',
+      ),
+    );
+    await upsertPayment(
+      Payment(
+        projectId: projectId,
+        type: PaymentType.receipt,
+        amount: 150000,
+        date: '2026-03-01',
+        note: 'Milestone 1',
+        dueDate: today,
+      ),
+    );
 
     await _setSetting('demo_seeded', '1');
   }
@@ -1228,7 +1260,12 @@ class AppRepository {
     final db = await _db.database;
     final map = payment.toMap()..remove('id');
     if (payment.id == null) return db.insert('client_payments', map);
-    await db.update('client_payments', map, where: 'id = ?', whereArgs: [payment.id]);
+    await db.update(
+      'client_payments',
+      map,
+      where: 'id = ?',
+      whereArgs: [payment.id],
+    );
     return payment.id!;
   }
 

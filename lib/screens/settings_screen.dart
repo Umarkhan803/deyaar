@@ -57,8 +57,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, contentCtrl.text), child: const Text('Continue')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, contentCtrl.text),
+            child: const Text('Continue'),
+          ),
         ],
       ),
     );
@@ -69,19 +75,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Import CSV as'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, 'clients'), child: const Text('Clients')),
-          TextButton(onPressed: () => Navigator.pop(ctx, 'workers'), child: const Text('Workers')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'clients'),
+            child: const Text('Clients'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'workers'),
+            child: const Text('Workers'),
+          ),
         ],
       ),
     );
     if (type == null || !mounted) return;
     final rows = csv.decode(pasted);
-    final imported = await context.read<AppProvider>().repo.importCsvRows(rows: rows, type: type);
+    final imported = await context.read<AppProvider>().repo.importCsvRows(
+      rows: rows,
+      type: type,
+    );
     await context.read<AppProvider>().refreshAll();
     await _reload();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Imported ${imported.clients} clients, ${imported.workers} workers')),
+      SnackBar(
+        content: Text(
+          'Imported ${imported.clients} clients, ${imported.workers} workers',
+        ),
+      ),
     );
   }
 
@@ -95,7 +114,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Data Overview', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Data Overview',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
           Card(
             child: Column(
@@ -103,12 +127,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _row('Workers', '${o?.workers ?? '…'}'),
                 _row('Attendance records', '${o?.attendance ?? '…'}'),
                 _row('Materials', '${o?.materials ?? '…'}'),
-                _row('Payments & expenses', '${o?.paymentsAndExpenses ?? '…'}'),
+                _row('Payments & wages', '${o?.paymentsAndWages ?? '…'}'),
                 _row('Site photos', '${o?.sitePhotos ?? '…'}'),
                 _row('Suppliers', '${o?.suppliers ?? '…'}'),
                 ListTile(
-                  leading: const Icon(Icons.delete_forever, color: AppColors.danger),
-                  title: const Text('Erase all data', style: TextStyle(color: AppColors.danger)),
+                  leading: const Icon(
+                    Icons.delete_forever,
+                    color: AppColors.danger,
+                  ),
+                  title: const Text(
+                    'Erase all data',
+                    style: TextStyle(color: AppColors.danger),
+                  ),
                   subtitle: const Text('Deletes every record on this device.'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () async {
@@ -118,8 +148,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: const Text('Erase all data?'),
                         content: const Text('This cannot be undone.'),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Erase')),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Erase'),
+                          ),
                         ],
                       ),
                     );
@@ -133,14 +169,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Company', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Company',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  TextField(controller: _company, decoration: const InputDecoration(labelText: 'Company name')),
+                  TextField(
+                    controller: _company,
+                    decoration: const InputDecoration(
+                      labelText: 'Company name',
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     // ignore: deprecated_member_use
@@ -161,9 +207,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onPrimary: () async {
                       await app.saveCompanyName(_company.text.trim());
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Saved')),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(const SnackBar(content: Text('Saved')));
                       }
                     },
                   ),
@@ -172,7 +218,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Appearance', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Appearance',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
           Card(
             child: Padding(
@@ -184,13 +235,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(Icons.dark_mode_outlined),
                     title: Text('Theme'),
-                    subtitle: Text('Follows the device light/dark setting when System is selected'),
+                    subtitle: Text(
+                      'Follows the device light/dark setting when System is selected',
+                    ),
                   ),
                   SegmentedButton<AppThemePreference>(
                     segments: const [
-                      ButtonSegment(value: AppThemePreference.system, label: Text('System')),
-                      ButtonSegment(value: AppThemePreference.light, label: Text('Light')),
-                      ButtonSegment(value: AppThemePreference.dark, label: Text('Dark')),
+                      ButtonSegment(
+                        value: AppThemePreference.system,
+                        label: Text('System'),
+                      ),
+                      ButtonSegment(
+                        value: AppThemePreference.light,
+                        label: Text('Light'),
+                      ),
+                      ButtonSegment(
+                        value: AppThemePreference.dark,
+                        label: Text('Dark'),
+                      ),
                     ],
                     selected: {app.settings.themeMode},
                     onSelectionChanged: (s) => app.saveThemeMode(s.first),
@@ -200,7 +262,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Security', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Security',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
           Card(
             child: Column(
@@ -225,7 +292,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         return;
                       }
                       try {
-                        final can = await _auth.canCheckBiometrics ||
+                        final can =
+                            await _auth.canCheckBiometrics ||
                             await _auth.isDeviceSupported();
                         if (!can) {
                           if (!mounted) return;
@@ -261,9 +329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                              'Could not enable fingerprint: $e',
-                            ),
+                            content: Text('Could not enable fingerprint: $e'),
                           ),
                         );
                         return;
@@ -286,13 +352,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Data import', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Data import',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
           Card(
             child: ListTile(
               leading: const Icon(Icons.upload_file),
               title: const Text('Import CSV'),
-              subtitle: const Text('Paste CSV text to import clients or workers'),
+              subtitle: const Text(
+                'Paste CSV text to import clients or workers',
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: _importCsv,
             ),
@@ -310,14 +383,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: 64,
                       height: 64,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Icon(Icons.apartment, size: 48, color: AppColors.primaryBlue),
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.apartment,
+                        size: 48,
+                        color: AppColors.primaryBlue,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text('DEYAAR CONSTRUCTIONS', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                  const Text('Building Your Vision', style: TextStyle(color: AppColors.primaryBlue)),
+                  const Text(
+                    'DEYAAR CONSTRUCTIONS',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const Text(
+                    'Building Your Vision',
+                    style: TextStyle(color: AppColors.primaryBlue),
+                  ),
                   const SizedBox(height: 8),
-                  Text('Version 1.0 (build 1)', style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    'Version 1.0 (build 1)',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     'Works fully offline — all data stays on this device',
@@ -325,7 +414,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
-                  Text('© 2026 Deyaar Constructions', style: Theme.of(context).textTheme.labelSmall),
+                  Text(
+                    '© 2026 Deyaar Constructions',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
                 ],
               ),
             ),
@@ -339,7 +431,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return ListTile(
       dense: true,
       title: Text(label),
-      trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+      trailing: Text(
+        value,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
     );
   }
 
@@ -357,8 +452,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: const InputDecoration(labelText: '4–6 digit PIN'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
